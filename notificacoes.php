@@ -12,6 +12,16 @@ if (!isset($_SESSION["usuario_id"])) {
 $tipo = $_SESSION["usuario_tipo"] ?? null;
 $id_usuario = $_SESSION["usuario_id"];
 
+// DEBUG: Verificar se há notificações no banco (CORRIGIDO)
+try {
+    $teste = $pdo->prepare("SELECT COUNT(*) as total FROM notificacoes WHERE id_usuario = ?");
+    $teste->execute([$id_usuario]);
+    $total_notif = $teste->fetch(PDO::FETCH_ASSOC);
+    error_log("Total na tabela notificacoes para usuário $id_usuario: " . ($total_notif['total'] ?? 0));
+} catch (PDOException $e) {
+    error_log("Erro no debug: " . $e->getMessage());
+}
+
 // Rota do botão + e perfil
 if ($tipo === "instituicao") {
     $rotaPlus = "criar_post.php";
@@ -21,147 +31,99 @@ if ($tipo === "instituicao") {
     $rotaPerfil = "perfil.php";
 }
 
-// Buscar notificações baseadas no tipo de usuário
-$notificacoes_hoje = [];
-$notificacoes_semana = [];
-$notificacoes_anteriores = [];
+// Buscar TODAS as notificações
+$notificacoes = [];
 
 try {
-    // Para INSTITUIÇÕES: Buscar coletas agendadas com status de visualização
-    if ($tipo === "instituicao") {
-        // Notificações de HOJE - Coletas agendadas para hoje (não visualizadas)
-        $sql_hoje = "SELECT d.*, u.nome as nome_doador, u.email as email_doador,
-                            c.data_agendada, c.endereco as local_coleta,
-                            cv.visualizada as ja_visualizada,
-                            'COLETA_AGENDADA' as tipo_notificacao
-                     FROM doacoes d 
-                     JOIN usuarios u ON d.id_doador = u.id_usuario 
-                     JOIN coletas c ON d.id_doacao = c.id_doacao
-                     LEFT JOIN coletas_visualizadas cv ON d.id_doacao = cv.id_doacao AND cv.id_ong = ?
-                     WHERE d.id_ong = ? 
-                     AND DATE(c.data_agendada) = CURRENT_DATE
-                     AND d.status = 'AGENDADA'
-                     ORDER BY c.data_agendada ASC";
+    // Buscar notificações da tabela notificacoes
+    $sql = "SELECT * FROM notificacoes 
+            WHERE id_usuario = ? 
+            ORDER BY data_envio DESC";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$id_usuario]);
+    $notificacoes_tabela = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Se for instituição e não encontrou notificações, buscar coletas
+    if (empty($notificacoes_tabela) && $tipo === "instituicao") {
+        $sql_coletas = "SELECT d.*, u.nome as nome_doador, u.email as email_doador,
+                               c.data_agendada, c.endereco as local_coleta,
+                               COALESCE(cv.visualizada, FALSE) as lida
+                        FROM doacoes d 
+                        JOIN usuarios u ON d.id_doador = u.id_usuario 
+                        JOIN coletas c ON d.id_doacao = c.id_doacao
+                        LEFT JOIN coletas_visualizadas cv ON d.id_doacao = cv.id_doacao AND cv.id_ong = ?
+                        WHERE d.id_ong = ? 
+                        AND d.status = 'AGENDADA'
+                        ORDER BY c.data_agendada DESC";
         
-        $stmt_hoje = $pdo->prepare($sql_hoje);
-        $stmt_hoje->execute([$id_usuario, $id_usuario]);
-        $coletas_hoje = $stmt_hoje->fetchAll(PDO::FETCH_ASSOC);
+        $stmt_coletas = $pdo->prepare($sql_coletas);
+        $stmt_coletas->execute([$id_usuario, $id_usuario]);
+        $coletas = $stmt_coletas->fetchAll(PDO::FETCH_ASSOC);
         
-        // Converter coletas em notificações
-        foreach ($coletas_hoje as $coleta) {
-            $notificacoes_hoje[] = [
-                'id_notificacao' => 'coleta_' . $coleta['id_doacao'],
-                'id_doacao' => $coleta['id_doacao'],
-                'mensagem' => $coleta['nome_doador'] . ' agendou uma coleta de ' . $coleta['tipo'] . 
-                             ' para ' . date('H:i', strtotime($coleta['data_agendada'])) . 
-                             ' no local: ' . $coleta['local_coleta'],
-                'data_envio' => $coleta['data_agendada'],
-                'lida' => $coleta['ja_visualizada'] ?? false,
-                'tipo' => 'COLETA_AGENDADA',
-                'dados_coleta' => $coleta
-            ];
-        }
-
-        // Notificações desta SEMANA - Coletas agendadas para esta semana (não visualizadas)
-        $sql_semana = "SELECT d.*, u.nome as nome_doador, u.email as email_doador,
-                              c.data_agendada, c.endereco as local_coleta,
-                              cv.visualizada as ja_visualizada,
-                              'COLETA_AGENDADA' as tipo_notificacao
-                       FROM doacoes d 
-                       JOIN usuarios u ON d.id_doador = u.id_usuario 
-                       JOIN coletas c ON d.id_doacao = c.id_doacao
-                       LEFT JOIN coletas_visualizadas cv ON d.id_doacao = cv.id_doacao AND cv.id_ong = ?
-                       WHERE d.id_ong = ? 
-                       AND DATE(c.data_agendada) BETWEEN CURRENT_DATE + INTERVAL '1 day' AND CURRENT_DATE + INTERVAL '7 days'
-                       AND d.status = 'AGENDADA'
-                       AND (cv.visualizada IS NULL OR cv.visualizada = FALSE)
-                       ORDER BY c.data_agendada ASC";
-        
-        $stmt_semana = $pdo->prepare($sql_semana);
-        $stmt_semana->execute([$id_usuario, $id_usuario]);
-        $coletas_semana = $stmt_semana->fetchAll(PDO::FETCH_ASSOC);
-        
-        foreach ($coletas_semana as $coleta) {
-            $notificacoes_semana[] = [
-                'id_notificacao' => 'coleta_' . $coleta['id_doacao'],
-                'id_doacao' => $coleta['id_doacao'],
-                'mensagem' => $coleta['nome_doador'] . ' agendou uma coleta de ' . $coleta['tipo'] . 
-                             ' para ' . date('d/m H:i', strtotime($coleta['data_agendada'])) . 
-                             ' no local: ' . $coleta['local_coleta'],
-                'data_envio' => $coleta['data_agendada'],
-                'lida' => $coleta['ja_visualizada'] ?? false,
-                'tipo' => 'COLETA_AGENDADA',
-                'dados_coleta' => $coleta
-            ];
-        }
-
-        // Notificações mais antigas - Coletas anteriores (visualizadas ou não)
-        $sql_anteriores = "SELECT d.*, u.nome as nome_doador, u.email as email_doador,
-                                  c.data_agendada, c.endereco as local_coleta,
-                                  cv.visualizada as ja_visualizada,
-                                  'COLETA_AGENDADA' as tipo_notificacao
-                           FROM doacoes d 
-                           JOIN usuarios u ON d.id_doador = u.id_usuario 
-                           JOIN coletas c ON d.id_doacao = c.id_doacao
-                           LEFT JOIN coletas_visualizadas cv ON d.id_doacao = cv.id_doacao AND cv.id_ong = ?
-                           WHERE d.id_ong = ? 
-                           AND DATE(c.data_agendada) < CURRENT_DATE
-                           AND d.status = 'AGENDADA'
-                           ORDER BY c.data_agendada DESC 
-                           LIMIT 10";
-        
-        $stmt_anteriores = $pdo->prepare($sql_anteriores);
-        $stmt_anteriores->execute([$id_usuario, $id_usuario]);
-        $coletas_anteriores = $stmt_anteriores->fetchAll(PDO::FETCH_ASSOC);
-        
-        foreach ($coletas_anteriores as $coleta) {
-            $notificacoes_anteriores[] = [
+        foreach ($coletas as $coleta) {
+            $notificacoes[] = [
                 'id_notificacao' => 'coleta_' . $coleta['id_doacao'],
                 'id_doacao' => $coleta['id_doacao'],
                 'mensagem' => $coleta['nome_doador'] . ' agendou uma coleta de ' . $coleta['tipo'] . 
                              ' para ' . date('d/m/Y H:i', strtotime($coleta['data_agendada'])) . 
                              ' no local: ' . $coleta['local_coleta'],
                 'data_envio' => $coleta['data_agendada'],
-                'lida' => $coleta['ja_visualizada'] ?? false,
+                'lida' => $coleta['lida'],
                 'tipo' => 'COLETA_AGENDADA',
                 'dados_coleta' => $coleta
             ];
         }
-
     } else {
-        // Para DOADORES: Buscar notificações do usuário
-        $sql_hoje = "SELECT * FROM notificacoes 
-                    WHERE id_usuario = ? 
-                    AND data_envio::date = CURRENT_DATE
-                    ORDER BY data_envio DESC";
-        $stmt_hoje = $pdo->prepare($sql_hoje);
-        $stmt_hoje->execute([$id_usuario]);
-        $notificacoes_hoje = $stmt_hoje->fetchAll(PDO::FETCH_ASSOC);
-
-        $sql_semana = "SELECT * FROM notificacoes 
-                      WHERE id_usuario = ? 
-                      AND data_envio::date BETWEEN CURRENT_DATE - INTERVAL '7 days' AND CURRENT_DATE - INTERVAL '1 day'
-                      ORDER BY data_envio DESC";
-        $stmt_semana = $pdo->prepare($sql_semana);
-        $stmt_semana->execute([$id_usuario]);
-        $notificacoes_semana = $stmt_semana->fetchAll(PDO::FETCH_ASSOC);
-
-        $sql_anteriores = "SELECT * FROM notificacoes 
-                          WHERE id_usuario = ? 
-                          AND data_envio::date < CURRENT_DATE - INTERVAL '7 days'
-                          ORDER BY data_envio DESC 
-                          LIMIT 10";
-        $stmt_anteriores = $pdo->prepare($sql_anteriores);
-        $stmt_anteriores->execute([$id_usuario]);
-        $notificacoes_anteriores = $stmt_anteriores->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($notificacoes_tabela as $notif) {
+            $notificacoes[] = [
+                'id_notificacao' => $notif['id_notificacao'],
+                'mensagem' => $notif['mensagem'],
+                'data_envio' => $notif['data_envio'],
+                'lida' => $notif['lida'],
+                'tipo' => $notif['tipo'] ?? null
+            ];
+        }
     }
-
+    
+    // Separar por período
+    $notificacoes_hoje = [];
+    $notificacoes_semana = [];
+    $notificacoes_anteriores = [];
+    
+    $hoje = new DateTime();
+    $hoje->setTime(0, 0, 0);
+    
+    $semana_atras = clone $hoje;
+    $semana_atras->modify('-7 days');
+    
+    foreach ($notificacoes as $notificacao) {
+        $data = new DateTime($notificacao['data_envio']);
+        $data->setTime(0, 0, 0);
+        
+        if ($data == $hoje) {
+            $notificacoes_hoje[] = $notificacao;
+        } elseif ($data >= $semana_atras && $data < $hoje) {
+            $notificacoes_semana[] = $notificacao;
+        } else {
+            $notificacoes_anteriores[] = $notificacao;
+        }
+    }
+    
 } catch (PDOException $e) {
     $error_db = "Erro ao carregar notificações: " . $e->getMessage();
-    error_log("Erro PostgreSQL: " . $e->getMessage());
+    error_log("Erro: " . $e->getMessage());
 }
 
-// Função para formatar data relativa
+// Calcular total de não lidas
+$total_nao_lidas = 0;
+foreach ($notificacoes_hoje as $notif) {
+    if (!$notif['lida']) $total_nao_lidas++;
+}
+foreach ($notificacoes_semana as $notif) {
+    if (!$notif['lida']) $total_nao_lidas++;
+}
+
+// Funções auxiliares
 function formatarDataRelativa($data) {
     $agora = new DateTime();
     $data_notificacao = new DateTime($data);
@@ -181,7 +143,6 @@ function formatarDataRelativa($data) {
     }
 }
 
-// Função para obter ícone baseado no tipo de notificação
 function getIconeMensagem($mensagem, $tipo = null) {
     if ($tipo === 'COLETA_AGENDADA') {
         return '📦';
@@ -198,7 +159,6 @@ function getIconeMensagem($mensagem, $tipo = null) {
     }
 }
 
-// Função para extrair título da mensagem
 function getTituloMensagem($mensagem, $tipo = null) {
     if ($tipo === 'COLETA_AGENDADA') {
         return 'Nova Coleta Agendada';
@@ -214,22 +174,6 @@ function getTituloMensagem($mensagem, $tipo = null) {
         return 'Notificação';
     }
 }
-
-// Calcular total de não lidas
-if ($tipo === "instituicao") {
-    $total_nao_lidas = 0;
-    foreach ($notificacoes_hoje as $notif) {
-        if (!$notif['lida']) $total_nao_lidas++;
-    }
-    foreach ($notificacoes_semana as $notif) {
-        if (!$notif['lida']) $total_nao_lidas++;
-    }
-} else {
-    $total_nao_lidas = 0;
-    foreach (array_merge($notificacoes_hoje, $notificacoes_semana) as $notif) {
-        if (!$notif['lida']) $total_nao_lidas++;
-    }
-}
 ?>
 
 <!DOCTYPE html>
@@ -238,41 +182,31 @@ if ($tipo === "instituicao") {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Notificações - Volunteer Community</title>
-
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/estilo_global.css">
 <link rel="stylesheet" href="css/estilo_notificacoes.css">
 </head>
-
 <body>
 
 <div class="phone">
 
-
   <div class="header">
-    <h1>Notificações 
-      <?php if ($tipo === "instituicao"): ?>
-        <span class="user-type-badge">ONG</span>
-      <?php else: ?>
-        <span class="user-type-badge">Doador</span>
-      <?php endif; ?>
-    </h1>
+    <h1>Notificações</h1>
     <button class="clear-btn" id="clear-btn" onclick="marcarTodasComoLidas()"
             <?php if ($total_nao_lidas === 0): ?>disabled style="opacity: 0.5; cursor: not-allowed;"<?php endif; ?>>
       Limpar <?php if ($total_nao_lidas > 0): ?>(<?= $total_nao_lidas ?>)<?php endif; ?>
     </button>
   </div>
 
-  <!-- CONTEÚDO COM SCROLL -->
   <div class="content">
-    <!-- HOJE -->
     <?php if (!empty($notificacoes_hoje)): ?>
     <div class="section">
       <div class="section-title">Hoje</div>
       <div class="list">
         <?php foreach ($notificacoes_hoje as $notificacao): ?>
           <div class="notification-item <?= (!$notificacao['lida']) ? 'unread' : '' ?>" 
-               onclick="marcarComoLida('<?= $notificacao['id_notificacao'] ?>', '<?= $notificacao['id_doacao'] ?? '' ?>', this)">
+               data-id="<?= htmlspecialchars($notificacao['id_notificacao']) ?>"
+               data-doacao="<?= htmlspecialchars($notificacao['id_doacao'] ?? '') ?>">
             <div class="notification-header">
               <div class="notification-icon">
                 <?= getIconeMensagem($notificacao['mensagem'], $notificacao['tipo'] ?? null) ?>
@@ -289,15 +223,12 @@ if ($tipo === "instituicao") {
                     <div><strong>Doador:</strong> <?= htmlspecialchars($notificacao['dados_coleta']['nome_doador']) ?></div>
                     <div><strong>Email:</strong> <?= htmlspecialchars($notificacao['dados_coleta']['email_doador']) ?></div>
                     <div><strong>Tipo:</strong> <?= htmlspecialchars($notificacao['dados_coleta']['tipo']) ?></div>
-                    <?php if (!empty($notificacao['dados_coleta']['descricao_item'])): ?>
-                      <div><strong>Descrição:</strong> <?= htmlspecialchars($notificacao['dados_coleta']['descricao_item']) ?></div>
-                    <?php endif; ?>
                   </div>
                 <?php endif; ?>
                 <div class="notification-time">
                   <?= formatarDataRelativa($notificacao['data_envio']) ?>
                   <?php if ($notificacao['lida']): ?>
-                    <span style="color: #2ecc71; margin-left: 5px;">✓ Visualizada</span>
+                    <span class="visualizada-badge">✓ Visualizada</span>
                   <?php endif; ?>
                 </div>
               </div>
@@ -308,14 +239,14 @@ if ($tipo === "instituicao") {
     </div>
     <?php endif; ?>
 
-    <!-- ESTA SEMANA -->
     <?php if (!empty($notificacoes_semana)): ?>
     <div class="section">
-      <div class="section-title">Próximos dias</div>
+      <div class="section-title">Últimos 7 dias</div>
       <div class="list">
         <?php foreach ($notificacoes_semana as $notificacao): ?>
-          <div class="notification-item <?= (!$notificacao['lida']) ? 'unread' : '' ?>" 
-               onclick="marcarComoLida('<?= $notificacao['id_notificacao'] ?>', '<?= $notificacao['id_doacao'] ?? '' ?>', this)">
+          <div class="notification-item <?= (!$notificacao['lida']) ? 'unread' : '' ?>"
+               data-id="<?= htmlspecialchars($notificacao['id_notificacao']) ?>"
+               data-doacao="<?= htmlspecialchars($notificacao['id_doacao'] ?? '') ?>">
             <div class="notification-header">
               <div class="notification-icon">
                 <?= getIconeMensagem($notificacao['mensagem'], $notificacao['tipo'] ?? null) ?>
@@ -332,15 +263,12 @@ if ($tipo === "instituicao") {
                     <div><strong>Doador:</strong> <?= htmlspecialchars($notificacao['dados_coleta']['nome_doador']) ?></div>
                     <div><strong>Email:</strong> <?= htmlspecialchars($notificacao['dados_coleta']['email_doador']) ?></div>
                     <div><strong>Tipo:</strong> <?= htmlspecialchars($notificacao['dados_coleta']['tipo']) ?></div>
-                    <?php if (!empty($notificacao['dados_coleta']['descricao_item'])): ?>
-                      <div><strong>Descrição:</strong> <?= htmlspecialchars($notificacao['dados_coleta']['descricao_item']) ?></div>
-                    <?php endif; ?>
                   </div>
                 <?php endif; ?>
                 <div class="notification-time">
                   <?= formatarDataRelativa($notificacao['data_envio']) ?>
                   <?php if ($notificacao['lida']): ?>
-                    <span style="color: #2ecc71; margin-left: 5px;">✓ Visualizada</span>
+                    <span class="visualizada-badge">✓ Visualizada</span>
                   <?php endif; ?>
                 </div>
               </div>
@@ -351,14 +279,14 @@ if ($tipo === "instituicao") {
     </div>
     <?php endif; ?>
 
-    <!-- MAIS ANTIGAS -->
     <?php if (!empty($notificacoes_anteriores)): ?>
     <div class="section">
-      <div class="section-title">Coletas anteriores</div>
+      <div class="section-title">Mais antigas</div>
       <div class="list">
         <?php foreach ($notificacoes_anteriores as $notificacao): ?>
-          <div class="notification-item" 
-               onclick="marcarComoLida('<?= $notificacao['id_notificacao'] ?>', '<?= $notificacao['id_doacao'] ?? '' ?>', this)">
+          <div class="notification-item"
+               data-id="<?= htmlspecialchars($notificacao['id_notificacao']) ?>"
+               data-doacao="<?= htmlspecialchars($notificacao['id_doacao'] ?? '') ?>">
             <div class="notification-header">
               <div class="notification-icon">
                 <?= getIconeMensagem($notificacao['mensagem'], $notificacao['tipo'] ?? null) ?>
@@ -375,15 +303,12 @@ if ($tipo === "instituicao") {
                     <div><strong>Doador:</strong> <?= htmlspecialchars($notificacao['dados_coleta']['nome_doador']) ?></div>
                     <div><strong>Email:</strong> <?= htmlspecialchars($notificacao['dados_coleta']['email_doador']) ?></div>
                     <div><strong>Tipo:</strong> <?= htmlspecialchars($notificacao['dados_coleta']['tipo']) ?></div>
-                    <?php if (!empty($notificacao['dados_coleta']['descricao_item'])): ?>
-                      <div><strong>Descrição:</strong> <?= htmlspecialchars($notificacao['dados_coleta']['descricao_item']) ?></div>
-                    <?php endif; ?>
                   </div>
                 <?php endif; ?>
                 <div class="notification-time">
                   <?= formatarDataRelativa($notificacao['data_envio']) ?>
                   <?php if ($notificacao['lida']): ?>
-                    <span style="color: #2ecc71; margin-left: 5px;">✓ Visualizada</span>
+                    <span class="visualizada-badge">✓ Visualizada</span>
                   <?php endif; ?>
                 </div>
               </div>
@@ -394,121 +319,91 @@ if ($tipo === "instituicao") {
     </div>
     <?php endif; ?>
 
-    <!-- MENSAGEM VAZIA -->
     <?php if (empty($notificacoes_hoje) && empty($notificacoes_semana) && empty($notificacoes_anteriores)): ?>
     <div class="empty-box">
-      <?php if ($tipo === "instituicao"): ?>
-        📭<br>
-        <strong>Nenhuma coleta agendada</strong><br>
-        <small>As coletas agendadas para sua ONG aparecerão aqui</small>
-      <?php else: ?>
-        📭<br>
-        <strong>Nenhuma notificação</strong><br>
-        <small>Suas notificações aparecerão aqui</small>
-      <?php endif; ?>
+      📭<br>
+      <strong>Nenhuma notificação</strong><br>
+      <small>Suas notificações aparecerão aqui</small>
     </div>
     <?php endif; ?>
   </div>
 
-  <!-- MENU INFERIOR FIXO -->
+  <!-- MENU INFERIOR -->
   <div class="bottom">
-    <a href="feed.php" class="menu-item">
-      🏠
-      <span>Feed</span>
-    </a>
-    <a href="campanhas.php" class="menu-item">
-      📢
-      <span>Campanhas</span>
-    </a>
-
+    <a href="feed.php" class="menu-item">🏠<span>Feed</span></a>
+    <a href="campanhas.php" class="menu-item">📢<span>Campanhas</span></a>
     <button class="plus-btn" onclick="window.location.href='<?= $rotaPlus ?>'">+</button>
-
     <a href="notificacoes.php" class="menu-item active">
-      🔔
-      <span>Notificações</span>
+      🔔<span>Notificações</span>
       <?php if ($total_nao_lidas > 0): ?>
         <span class="badge" id="badge-count"><?= $total_nao_lidas ?></span>
       <?php endif; ?>
     </a>
-
-    <a href="<?= $rotaPerfil ?>" class="menu-item">
-      👤
-      <span>Perfil</span>
-    </a>
+    <a href="<?= $rotaPerfil ?>" class="menu-item">👤<span>Perfil</span></a>
   </div>
 
 </div>
 
 <script>
-// Variável para controlar o tipo de usuário
 const tipoUsuario = "<?= $tipo ?>";
 
-// Função para marcar notificação como lida
+// Marcar notificação como lida ao clicar
+document.querySelectorAll('.notification-item').forEach(item => {
+    item.addEventListener('click', function(e) {
+        if (e.target.classList.contains('notification-details')) return;
+        
+        const idNotificacao = this.dataset.id;
+        const idDoacao = this.dataset.doacao;
+        
+        if (this.classList.contains('unread')) {
+            marcarComoLida(idNotificacao, idDoacao, this);
+        }
+    });
+});
+
 async function marcarComoLida(idNotificacao, idDoacao, elemento) {
     elemento.classList.remove('unread');
     
     const timeElement = elemento.querySelector('.notification-time');
-    if (timeElement && !timeElement.innerHTML.includes('✓ Visualizada')) {
-        timeElement.innerHTML += ' <span style="color: #2ecc71; margin-left: 5px;">✓ Visualizada</span>';
+    if (timeElement && !timeElement.querySelector('.visualizada-badge')) {
+        const badge = document.createElement('span');
+        badge.className = 'visualizada-badge';
+        badge.innerHTML = '✓ Visualizada';
+        timeElement.appendChild(badge);
     }
     
-    if (tipoUsuario === "instituicao") {
-        try {
-            const formData = new FormData();
-            const idParaEnviar = idDoacao || idNotificacao.replace('coleta_', '');
-            formData.append('id_doacao', idParaEnviar);
-            
-            const response = await fetch('marcar_coleta_visualizada.php', {
-                method: 'POST',
-                body: formData
-            });
-            
-            const data = await response.json();
-            
-            if (!data.success) {
-                elemento.classList.add('unread');
-                if (timeElement) {
-                    timeElement.innerHTML = timeElement.innerHTML.replace('<span style="color: #2ecc71; margin-left: 5px;">✓ Visualizada</span>', '');
-                }
-            } else {
-                atualizarContadorNotificacoes();
-            }
-        } catch (error) {
-            elemento.classList.add('unread');
-            if (timeElement) {
-                timeElement.innerHTML = timeElement.innerHTML.replace('<span style="color: #2ecc71; margin-left: 5px;">✓ Visualizada</span>', '');
-            }
+    try {
+        let url, body;
+        if (tipoUsuario === "instituicao" && idDoacao) {
+            url = 'marcar_coleta_visualizada.php';
+            body = new FormData();
+            body.append('id_doacao', idDoacao);
+        } else {
+            url = 'marcar_como_lida.php';
+            body = new FormData();
+            body.append('id_notificacao', idNotificacao);
         }
-    } else {
-        try {
-            const formData = new FormData();
-            formData.append('id_notificacao', idNotificacao);
-            
-            const response = await fetch('marcar_como_lida.php', {
-                method: 'POST',
-                body: formData
-            });
-            
-            const data = await response.json();
-            
-            if (!data.success) {
-                elemento.classList.add('unread');
-                if (timeElement) {
-                    timeElement.innerHTML = timeElement.innerHTML.replace('<span style="color: #2ecc71; margin-left: 5px;">✓ Visualizada</span>', '');
-                }
-            } else {
-                atualizarContadorNotificacoes();
-            }
-        } catch (error) {
+        
+        const response = await fetch(url, { method: 'POST', body });
+        const data = await response.json();
+        
+        if (!data.success) {
             elemento.classList.add('unread');
-            if (timeElement) {
-                timeElement.innerHTML = timeElement.innerHTML.replace('<span style="color: #2ecc71; margin-left: 5px;">✓ Visualizada</span>', '');
+            if (timeElement.querySelector('.visualizada-badge')) {
+                timeElement.querySelector('.visualizada-badge').remove();
             }
+        } else {
+            atualizarContadorNotificacoes();
+            atualizarBadgeMenu();
+        }
+    } catch (error) {
+        elemento.classList.add('unread');
+        if (timeElement.querySelector('.visualizada-badge')) {
+            timeElement.querySelector('.visualizada-badge').remove();
         }
     }
 }
 
-// Função para marcar todas como lidas
 async function marcarTodasComoLidas() {
     const confirmMessage = tipoUsuario === "instituicao" 
         ? 'Marcar TODAS as coletas como visualizadas?' 
@@ -517,45 +412,42 @@ async function marcarTodasComoLidas() {
     if (!confirm(confirmMessage)) return;
     
     try {
-        const formData = new FormData();
-        formData.append('marcar_todas', true);
+        let url = 'marcar_todas_notificacoes.php';
         
-        const endpoint = tipoUsuario === "instituicao" 
-            ? 'marcar_coleta_visualizada.php' 
-            : 'marcar_como_lida.php';
-        
-        const response = await fetch(endpoint, { method: 'POST', body: formData });
+        const response = await fetch(url, { method: 'POST' });
         const data = await response.json();
         
         if (data.success) {
             document.querySelectorAll('.notification-item.unread').forEach(item => {
                 item.classList.remove('unread');
                 const timeElement = item.querySelector('.notification-time');
-                if (timeElement && !timeElement.innerHTML.includes('✓ Visualizada')) {
-                    timeElement.innerHTML += ' <span style="color: #2ecc71; margin-left: 5px;">✓ Visualizada</span>';
+                if (timeElement && !timeElement.querySelector('.visualizada-badge')) {
+                    const badge = document.createElement('span');
+                    badge.className = 'visualizada-badge';
+                    badge.innerHTML = '✓ Visualizada';
+                    timeElement.appendChild(badge);
                 }
             });
             
             atualizarContadorNotificacoes();
+            atualizarBadgeMenu();
             
             const clearBtn = document.getElementById('clear-btn');
             if (clearBtn) {
                 clearBtn.innerHTML = 'Limpar';
                 clearBtn.disabled = true;
                 clearBtn.style.opacity = '0.5';
-                clearBtn.style.cursor = 'not-allowed';
             }
             
-            alert(tipoUsuario === "instituicao" ? 'Todas as coletas foram marcadas como visualizadas!' : 'Todas as notificações foram marcadas como lidas!');
+            alert(data.message || 'Todas as notificações foram marcadas como lidas!');
         } else {
-            alert('Erro: ' + data.error);
+            alert('Erro: ' + (data.error || 'Tente novamente'));
         }
     } catch (error) {
         alert('Erro ao conectar com o servidor');
     }
 }
 
-// Função para atualizar contador de notificações
 function atualizarContadorNotificacoes() {
     const unreadCount = document.querySelectorAll('.notification-item.unread').length;
     const badge = document.getElementById('badge-count');
@@ -564,27 +456,52 @@ function atualizarContadorNotificacoes() {
     if (unreadCount > 0) {
         if (badge) {
             badge.textContent = unreadCount;
+            badge.style.display = 'inline-flex';
         }
         if (clearBtn) {
             clearBtn.innerHTML = `Limpar (${unreadCount})`;
             clearBtn.disabled = false;
             clearBtn.style.opacity = '1';
-            clearBtn.style.cursor = 'pointer';
         }
     } else {
-        if (badge) badge.remove();
+        if (badge) badge.style.display = 'none';
         if (clearBtn) {
             clearBtn.innerHTML = 'Limpar';
             clearBtn.disabled = true;
             clearBtn.style.opacity = '0.5';
-            clearBtn.style.cursor = 'not-allowed';
         }
     }
 }
 
-// Inicializar
+async function atualizarBadgeMenu() {
+    try {
+        const response = await fetch('contar_notificacoes.php');
+        const data = await response.json();
+        
+        const menuBadge = document.querySelector('.bottom .menu-item[href="notificacoes.php"] .badge');
+        const menuLink = document.querySelector('.bottom .menu-item[href="notificacoes.php"]');
+        
+        if (data.total > 0) {
+            if (menuBadge) {
+                menuBadge.textContent = data.total;
+                menuBadge.style.display = 'inline-flex';
+            } else if (menuLink) {
+                const span = document.createElement('span');
+                span.className = 'badge';
+                span.textContent = data.total;
+                menuLink.appendChild(span);
+            }
+        } else {
+            if (menuBadge) menuBadge.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Erro ao atualizar badge:', error);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     atualizarContadorNotificacoes();
+    atualizarBadgeMenu();
     document.body.style.overflow = 'hidden';
 });
 </script>

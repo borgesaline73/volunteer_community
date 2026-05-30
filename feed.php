@@ -27,6 +27,31 @@ if ($tipoUsuario === "instituicao") {
     $acaoPlus = "agendar_coleta.php";
     $rotaPerfil = "perfil.php";
 }
+
+// Buscar total de notificações não lidas
+$total_notificacoes = 0;
+try {
+    if ($tipoUsuario === "instituicao") {
+        // Para ONGs: contar coletas não visualizadas
+        $sql = "SELECT COUNT(*) as total 
+                FROM doacoes d 
+                JOIN coletas c ON d.id_doacao = c.id_doacao
+                LEFT JOIN coletas_visualizadas cv ON d.id_doacao = cv.id_doacao AND cv.id_ong = ?
+                WHERE d.id_ong = ? 
+                AND d.status = 'AGENDADA'
+                AND (cv.visualizada IS NULL OR cv.visualizada = FALSE)";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$_SESSION["usuario_id"], $_SESSION["usuario_id"]]);
+        $total_notificacoes = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+    } else {
+        // Para doadores: contar notificações não lidas
+        $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM notificacoes WHERE id_usuario = ? AND lida = FALSE");
+        $stmt->execute([$_SESSION["usuario_id"]]);
+        $total_notificacoes = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+    }
+} catch (PDOException $e) {
+    error_log("Erro ao contar notificações: " . $e->getMessage());
+}
 ?>
 
 <!DOCTYPE html>
@@ -45,7 +70,6 @@ if ($tipoUsuario === "instituicao") {
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 
 <style>
-    /* Estilo para confinar o SweetAlert dentro do telefone */
     .phone {
         position: relative;
         overflow: hidden;
@@ -81,6 +105,36 @@ if ($tipoUsuario === "instituicao") {
         font-weight: 600 !important;
         font-size: 13px !important;
     }
+
+    /* Badge de notificações */
+    .notification-badge {
+        position: absolute;
+        top: -5px;
+        right: -8px;
+        background-color: #ff4444;
+        color: white;
+        border-radius: 50%;
+        width: 18px;
+        height: 18px;
+        font-size: 10px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+
+    .menu-item {
+        position: relative;
+    }
 </style>
 </head>
 
@@ -88,7 +142,6 @@ if ($tipoUsuario === "instituicao") {
 
 <div class="phone" id="phoneWrapper">
 
- 
   <div class="header">
     <h1>Conexão Solidária</h1>
   </div>
@@ -96,9 +149,10 @@ if ($tipoUsuario === "instituicao") {
   <div class="feed-container">
     <?php
     try {
-        // Buscar todos os posts
+        // Buscar todos os posts com o ID correto da ONG
         $query = $pdo->query("SELECT p.*, u.nome, u.id_usuario as id_ong FROM posts p 
                               JOIN usuarios u ON p.id_usuario = u.id_usuario
+                              WHERE u.tipo_usuario = 'instituicao'
                               ORDER BY p.data_post DESC");
 
         $posts = $query->fetchAll(PDO::FETCH_ASSOC);
@@ -118,22 +172,25 @@ if ($tipoUsuario === "instituicao") {
           <?php foreach ($posts as $post): 
             $descricao = $post['descricao'];
             $temTextoLongo = strlen($descricao) > 200;
+            $id_ong_perfil = (int)$post['id_ong'];
+            
+            if ($id_ong_perfil <= 0) continue;
           ?>
             <div class="post-card-solidario">
               <div class="post-header">
-              <a href="perfil-ong-publico.php?id=<?= $post['id_ong'] ?>">
-                  <div class="post-avatar">🤝</div>
-              </a>
-                <div class="post-org-info">
-                  <h3><?= htmlspecialchars($post['titulo']) ?></h3>
-                <div class="post-meta">
-                    Publicado por 
-                    <a href="perfil-ong-publico.php?id=<?= $post['id_ong'] ?>" class="link-ong">
-                      <strong><?= htmlspecialchars($post['nome']) ?></strong>
-                    </a> • 
-                  <?= date("d/m/Y \à\s H:i", strtotime($post['data_post'])) ?>
-                </div>
-                </div>
+                  <a href="perfil-ong-publico.php?id=<?= $id_ong_perfil ?>" class="post-avatar-link">
+                      <div class="post-avatar">🤝</div>
+                  </a>
+                  <div class="post-org-info">
+                      <h3><?= htmlspecialchars($post['titulo']) ?></h3>
+                      <div class="post-meta">
+                          Publicado por 
+                          <a href="perfil-ong-publico.php?id=<?= $id_ong_perfil ?>" class="link-ong">
+                              <strong><?= htmlspecialchars($post['nome']) ?></strong>
+                          </a> • 
+                          <?= date("d/m/Y \à\s H:i", strtotime($post['data_post'])) ?>
+                      </div>
+                  </div>
               </div>
 
               <?php if (!empty($post['categoria'])): ?>
@@ -159,21 +216,20 @@ if ($tipoUsuario === "instituicao") {
                      onerror="this.style.display='none'">
               <?php endif; ?>
 
-              <!-- BOTÃO EFETUAR DOAÇÃO - APENAS PARA DOADORES -->
               <?php if ($tipoUsuario === "doador"): ?>
                 <div class="post-acoes">
-                <a href="perfil-ong-publico.php?id=<?= $post['id_ong'] ?>" class="btn-ver-ong">
-                  <span style="font-size:14px; line-height:1;">🏢</span> Ver ONG
-                </a>
-                  <button class="doacao-btn" onclick="efetuarDoacao(<?= $post['id_ong'] ?>, '<?= htmlspecialchars(addslashes($post['titulo'])) ?>')">
-                    💝 Efetuar Doação
-                  </button>
+                    <a href="perfil-ong-publico.php?id=<?= $id_ong_perfil ?>" class="btn-ver-ong">
+                        <span style="font-size:14px; line-height:1;">🏢</span> Ver ONG
+                    </a>
+                    <button class="doacao-btn" onclick="efetuarDoacao(<?= $id_ong_perfil ?>, '<?= htmlspecialchars(addslashes($post['titulo'])) ?>')">
+                        💝 Efetuar Doação
+                    </button>
                 </div>
               <?php elseif ($tipoUsuario === "instituicao"): ?>
                 <div class="post-acoes">
-                  <a href="perfil-ong-publico.php?id=<?= $post['id_ong'] ?>" class="btn-ver-ong">
-                    🏢 Ver ONG
-                  </a>
+                    <a href="perfil-ong-publico.php?id=<?= $id_ong_perfil ?>" class="btn-ver-ong">
+                        🏢 Ver ONG
+                    </a>
                 </div>
               <?php endif; ?>
             </div>
@@ -192,7 +248,6 @@ if ($tipoUsuario === "instituicao") {
     <?php } ?>
   </div>
 
-  <!-- MENU INFERIOR FIXO -->
   <div class="bottom">
     <a href="feed.php" class="menu-item active">
       🏠
@@ -204,15 +259,16 @@ if ($tipoUsuario === "instituicao") {
       <span>Campanhas</span>
     </a>
 
-   
     <button class="plus-btn" onclick="window.location.href='<?= $acaoPlus ?>'">+</button>
 
     <a href="notificacoes.php" class="menu-item">
       🔔
       <span>Notificações</span>
+      <?php if ($total_notificacoes > 0): ?>
+        <span class="notification-badge" id="notificationBadge"><?= $total_notificacoes ?></span>
+      <?php endif; ?>
     </a>
 
-    <!-- LINK DO PERFIL CORRETO -->
     <a href="<?= $rotaPerfil ?>" class="menu-item">
       👤
       <span>Perfil</span>
@@ -220,11 +276,9 @@ if ($tipoUsuario === "instituicao") {
   </div>
 </div>
 
-<!-- SweetAlert2 JS -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
-// ─── Referência ao elemento .phone para confinar os modais ───────────────────
 const phoneEl = document.getElementById('phoneWrapper');
 
 const swalFeed = Swal.mixin({
@@ -237,7 +291,6 @@ const swalFeed = Swal.mixin({
     }
 });
 
-// ===== FUNÇÃO PARA EFETUAR DOAÇÃO COM SWEETALERT2 =====
 async function efetuarDoacao(idOng, tituloOng) {
     const result = await swalFeed.fire({
         title: '💝 Fazer Doação',
@@ -262,7 +315,6 @@ async function efetuarDoacao(idOng, tituloOng) {
     }
 }
 
-// ===== FUNÇÃO PARA EXPANDIR/RECOLHER CONTEÚDO =====
 function toggleContent(postId, button) {
     const content = document.getElementById('content-' + postId);
     const isExpanded = content.classList.contains('expanded');
@@ -276,7 +328,35 @@ function toggleContent(postId, button) {
     }
 }
 
-// ===== MOSTRAR MENSAGEM FLASH (SUCESSO DO AGENDAMENTO) =====
+// ===== FUNÇÃO PARA ATUALIZAR BADGE DE NOTIFICAÇÕES =====
+async function atualizarBadgeNotificacoes() {
+    try {
+        const response = await fetch('contar_notificacoes.php');
+        const data = await response.json();
+        
+        const badge = document.getElementById('notificationBadge');
+        const notifLink = document.querySelector('a[href="notificacoes.php"]');
+        
+        if (data.total > 0) {
+            if (badge) {
+                badge.textContent = data.total;
+                badge.style.display = 'flex';
+            } else if (notifLink) {
+                const span = document.createElement('span');
+                span.className = 'notification-badge';
+                span.id = 'notificationBadge';
+                span.textContent = data.total;
+                notifLink.appendChild(span);
+            }
+        } else {
+            if (badge) badge.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Erro ao buscar notificações:', error);
+    }
+}
+
+// ===== MENSAGEM FLASH =====
 <?php if (!empty($mensagem_flash) && !empty($tipo_flash)): ?>
 document.addEventListener('DOMContentLoaded', function() {
     swalFeed.fire({
@@ -318,9 +398,14 @@ document.addEventListener('DOMContentLoaded', function() {
             localStorage.setItem('lastVisit', today);
         }, 1000);
     }
+    
+    // Atualizar badge ao carregar
+    atualizarBadgeNotificacoes();
 });
 
-// Prevenir scroll do body
+// Atualizar badge a cada 30 segundos
+setInterval(atualizarBadgeNotificacoes, 30000);
+
 document.body.style.overflow = 'hidden';
 </script>
 

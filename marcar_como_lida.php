@@ -2,6 +2,8 @@
 session_start();
 require "banco.php";
 
+header('Content-Type: application/json');
+
 // Verificar se usuário está logado
 if (!isset($_SESSION["usuario_id"])) {
     echo json_encode(['success' => false, 'error' => 'Não autenticado']);
@@ -12,12 +14,10 @@ $id_usuario = $_SESSION["usuario_id"];
 $id_notificacao = $_POST['id_notificacao'] ?? null;
 $marcar_todas = $_POST['marcar_todas'] ?? false;
 
-header('Content-Type: application/json');
-
 try {
     if ($marcar_todas) {
         // Marcar TODAS as notificações como lidas
-        $sql = "UPDATE notificacoes SET lida = TRUE WHERE id_usuario = ?";
+        $sql = "UPDATE notificacoes SET lida = TRUE WHERE id_usuario = ? AND lida = FALSE";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$id_usuario]);
         

@@ -2,35 +2,37 @@
 session_start();
 require "banco.php";
 
+header('Content-Type: application/json');
+
 // Verificar se usuário está logado
 if (!isset($_SESSION["usuario_id"])) {
-    header('Content-Type: application/json');
-    echo json_encode(['novas' => []]);
+    echo json_encode(['novas' => [], 'timestamp_atual' => time()]);
     exit;
 }
 
 $id_usuario = $_SESSION["usuario_id"];
 $tipo = $_SESSION["usuario_tipo"] ?? null;
-$ultima_verificacao = $_GET['ultima_verificacao'] ?? time();
+$ultima_verificacao = isset($_GET['ultima_verificacao']) ? (int)$_GET['ultima_verificacao'] : time();
 
 $novas_notificacoes = [];
 
 try {
-    // Para INSTITUIÇÕES: Buscar coletas agendadas desde a última verificação
     if ($tipo === "instituicao") {
+        // Para INSTITUIÇÕES: Buscar coletas agendadas não visualizadas
         $sql = "SELECT d.*, u.nome as nome_doador, u.email as email_doador,
                        c.data_agendada, c.endereco as local_coleta,
-                       'COLETA_AGENDADA' as tipo_notificacao
+                       cv.visualizada as ja_visualizada
                 FROM doacoes d 
                 JOIN usuarios u ON d.id_doador = u.id_usuario 
                 JOIN coletas c ON d.id_doacao = c.id_doacao
+                LEFT JOIN coletas_visualizadas cv ON d.id_doacao = cv.id_doacao AND cv.id_ong = ?
                 WHERE d.id_ong = ? 
-                AND c.data_agendada > to_timestamp(?)
                 AND d.status = 'AGENDADA'
-                ORDER BY c.data_agendada DESC";
+                AND (cv.visualizada IS NULL OR cv.visualizada = FALSE)
+                ORDER BY c.data_agendada ASC";
         
         $stmt = $pdo->prepare($sql);
-        $stmt->execute([$id_usuario, $ultima_verificacao]);
+        $stmt->execute([$id_usuario, $id_usuario]);
         $coletas = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         foreach ($coletas as $coleta) {
@@ -40,22 +42,17 @@ try {
                              ' para ' . date('d/m H:i', strtotime($coleta['data_agendada'])) . 
                              ' no local: ' . $coleta['local_coleta'],
                 'data_envio' => $coleta['data_agendada'],
-                'tipo' => 'COLETA_AGENDADA',
-                'detalhes' => 'Doador: ' . $coleta['nome_doador'] . 
-                             '<br>Email: ' . $coleta['email_doador'] . 
-                             '<br>Tipo: ' . $coleta['tipo'] .
-                             (!empty($coleta['descricao_item']) ? '<br>Descrição: ' . $coleta['descricao_item'] : '')
+                'tipo' => 'COLETA_AGENDADA'
             ];
         }
     } else {
-        // Para DOADORES: Buscar notificações desde a última verificação
+        // Para DOADORES: Buscar notificações não lidas
         $sql = "SELECT * FROM notificacoes 
-                WHERE id_usuario = ? 
-                AND data_envio > to_timestamp(?)
+                WHERE id_usuario = ? AND lida = FALSE
                 ORDER BY data_envio DESC";
         
         $stmt = $pdo->prepare($sql);
-        $stmt->execute([$id_usuario, $ultima_verificacao]);
+        $stmt->execute([$id_usuario]);
         $notificacoes = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         foreach ($notificacoes as $notif) {
@@ -68,14 +65,13 @@ try {
         }
     }
     
-    header('Content-Type: application/json');
     echo json_encode([
         'novas' => $novas_notificacoes,
         'timestamp_atual' => time()
     ]);
     
 } catch (PDOException $e) {
-    header('Content-Type: application/json');
+    error_log("Erro ao verificar notificações: " . $e->getMessage());
     echo json_encode([
         'novas' => [],
         'timestamp_atual' => time(),
