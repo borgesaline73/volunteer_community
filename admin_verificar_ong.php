@@ -245,6 +245,7 @@ async function reverificar(idOng, cnpj, nomeOng) {
 function filtrar(status, btn) {
     document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     document.querySelectorAll('.ong-card').forEach(card => {
         card.style.display = (status === 'todos' || card.dataset.status === status) ? 'block' : 'none';
     });

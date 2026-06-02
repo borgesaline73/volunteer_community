@@ -328,6 +328,40 @@
     font-size: 13px;
     margin-top: 10px;
   }
+  /* ===== FILTROS — comportamento igual ao tab-menu do perfil ===== */
+.filtros-wrap {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #fff;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.filtros {
+  gap: 6px;
+  padding: 12px 16px;
+}
+
+.filtro-btn {
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #666;
+  border: 1.5px solid #ddd;
+  transition: all 0.2s;
+}
+
+.filtro-btn:hover:not(.active) {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.filtro-btn.active {
+  background: var(--orange, #f4822f);
+  border-color: var(--orange, #f4822f);
+  color: #fff;
+  font-weight: 600;
+}
   
   /* ===== SWEETALERT CONFINADO ===== */
   .swal2-container.swal-inside {

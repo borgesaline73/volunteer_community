@@ -132,6 +132,9 @@ CREATE TABLE recuperacao_senha (
     criado_em  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+ALTER TABLE doacoes ADD CONSTRAINT doacoes_status_check 
+CHECK (status IN ('AGENDADA', 'RECEBIDA', 'CANCELADA', 'PENDENTE_PIX'));
+
 
 -- ===========================================
 -- 2. ÍNDICES

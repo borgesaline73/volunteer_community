@@ -75,12 +75,18 @@ try {
                u.nome as nome_doador, u.email as email_doador,
                c.data_agendada, c.endereco as local_coleta,
                CASE WHEN d.tipo='ITEM' THEN 'Doação de Itens' WHEN d.tipo='DINHEIRO' THEN 'Doação em Dinheiro' ELSE d.tipo END as tipo_formatado,
-               CASE WHEN d.status='AGENDADA' THEN 'Coleta Agendada' WHEN d.status='RECEBIDA' THEN 'Coleta Recebida' ELSE d.status END as status_formatado
+               CASE WHEN d.status='AGENDADA' THEN 'Coleta Agendada'
+                    WHEN d.status='RECEBIDA' THEN 'Coleta Recebida'
+                    WHEN d.status='PENDENTE_PIX' THEN 'PIX Pendente'
+                    ELSE d.status END as status_formatado
         FROM doacoes d
         JOIN usuarios u ON d.id_doador = u.id_usuario
         JOIN coletas c ON d.id_doacao = c.id_doacao
         WHERE d.id_ong = ?
-        ORDER BY CASE WHEN d.status='AGENDADA' THEN 1 ELSE 2 END, c.data_agendada ASC");
+        ORDER BY CASE WHEN d.status='AGENDADA' THEN 1
+                      WHEN d.status='PENDENTE_PIX' THEN 2
+                      ELSE 3 END,
+                 c.data_agendada ASC");
     $stmt_coletas->execute([$id_ong]);
     $coletas = $stmt_coletas->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) { error_log("Erro coletas: " . $e->getMessage()); }
@@ -88,7 +94,7 @@ try {
 // ===== BUSCAR ITENS =====
 $itens_aceitos = $itens_recusados = [];
 try {
-    $stmt_itens = $pdo->prepare("SELECT id, id_ong, nome, tipo FROM itens_ong WHERE id_ong = ? ORDER BY tipo, nome ASC");
+    $stmt_itens = $pdo->prepare("SELECT id_item, id_ong, nome, tipo FROM itens_ong WHERE id_ong = ? ORDER BY tipo, nome ASC");
     $stmt_itens->execute([$id_ong]);
     $itens           = $stmt_itens->fetchAll(PDO::FETCH_ASSOC);
     $itens_aceitos   = array_filter($itens, fn($i) => $i['tipo'] === 'ACEITO');
@@ -142,7 +148,6 @@ $rotaPerfil = "perfil-ong.php";
     width: auto !important; height: auto !important;
   }
 
-  /* ── Selos ── */
   .verified-section {
     margin: 10px 0;
     display: flex;
@@ -163,22 +168,9 @@ $rotaPerfil = "perfil-ong.php";
     transition: transform 0.2s;
   }
   .verified-badge-ong:hover { transform: scale(1.03); }
-
-  .verified-badge-ong.aprovada {
-    background: linear-gradient(135deg, #d4edda, #b8e0c4);
-    color: #155724;
-    border: 1.5px solid #a8d5b0;
-  }
-  .verified-badge-ong.pendente {
-    background: #fff3cd;
-    color: #856404;
-    border: 1.5px solid #ffd877;
-  }
-  .verified-badge-ong.rejeitada {
-    background: #f8d7da;
-    color: #721c24;
-    border: 1.5px solid #f5b8b3;
-  }
+  .verified-badge-ong.aprovada  { background: linear-gradient(135deg, #d4edda, #b8e0c4); color: #155724; border: 1.5px solid #a8d5b0; }
+  .verified-badge-ong.pendente  { background: #fff3cd; color: #856404; border: 1.5px solid #ffd877; }
+  .verified-badge-ong.rejeitada { background: #f8d7da; color: #721c24; border: 1.5px solid #f5b8b3; }
 
   .check-icon {
     width: 18px; height: 18px;
@@ -202,7 +194,6 @@ $rotaPerfil = "perfil-ong.php";
     font-family: 'Poppins', sans-serif;
   }
 
-  /* PIX */
   .btn-pix {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white; border: none; border-radius: 12px;
@@ -218,6 +209,33 @@ $rotaPerfil = "perfil-ong.php";
   .pix-status.cadastrada     { background: #d4edda; color: #155724; }
   .pix-status.nao-cadastrada { background: #fff3cd; color: #856404; }
   .pix-key-preview { font-family: monospace; word-break: break-all; font-size: 11px; margin-top: 4px; color: #666; }
+
+  .btn-confirmar-pix {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+    width: 100%;
+    font-family: 'Poppins', sans-serif;
+    transition: all 0.3s;
+  }
+  .btn-confirmar-pix:hover { opacity: 0.9; transform: translateY(-1px); }
+
+  .status-pix-pendente {
+    background: #ede7f6;
+    color: #5e35b1;
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 8px;
+  }
 </style>
 </head>
 <body>
@@ -242,27 +260,20 @@ $rotaPerfil = "perfil-ong.php";
       <?php endif; ?>
       <div class="info-item"><strong>Tipo:</strong> Instituição</div>
 
-      <!-- Seção de verificação -->
       <div class="verified-section">
         <?php if ($verificada && $verificacao_status === 'aprovada'): ?>
           <div class="verified-badge-ong aprovada" onclick="mostrarInfoVerificacao()">
-            <span class="check-icon">✓</span>
-            ONG Verificada
+            <span class="check-icon">✓</span>ONG Verificada
           </div>
         <?php elseif ($verificacao_status === 'rejeitada'): ?>
-          <div class="verified-badge-ong rejeitada">
-            ❌ Verificação não aprovada
-          </div>
+          <div class="verified-badge-ong rejeitada">❌ Verificação não aprovada</div>
           <button class="verificar-link" onclick="mostrarInfoVerificacao()">Saiba mais</button>
         <?php else: ?>
-          <div class="verified-badge-ong pendente">
-            ⏳ Verificação em análise
-          </div>
+          <div class="verified-badge-ong pendente">⏳ Verificação em análise</div>
           <button class="verificar-link" onclick="mostrarInfoVerificacao()">O que é isso?</button>
         <?php endif; ?>
       </div>
 
-      <!-- Status da Chave PIX -->
       <div class="pix-status <?= !empty($chave_pix) ? 'cadastrada' : 'nao-cadastrada' ?>">
         <?php if (!empty($chave_pix)): ?>
           💜 Chave PIX cadastrada
@@ -323,7 +334,7 @@ $rotaPerfil = "perfil-ong.php";
       <?php endif; ?>
     </div>
 
-    <!-- ========== ABA ITENS (CORRIGIDA) ========== -->
+    <!-- ========== ABA ITENS ========== -->
     <div class="tab-content" id="itens-tab">
       <div class="section">
         <span>✅ Itens Aceitos</span>
@@ -334,10 +345,10 @@ $rotaPerfil = "perfil-ong.php";
           <p class="empty-itens" id="empty-aceitos">Nenhum item cadastrado ainda.</p>
         <?php else: ?>
           <?php foreach ($itens_aceitos as $item): ?>
-            <?php if (isset($item['id']) && isset($item['nome'])): ?>
-              <div class="item-tag aceito" id="item-<?= $item['id'] ?>">
+            <?php if (isset($item['id_item']) && isset($item['nome'])): ?>
+              <div class="item-tag aceito" id="item-<?= $item['id_item'] ?>">
                 <?= htmlspecialchars($item['nome']) ?>
-                <span class="remove-item" onclick="removerItem(<?= $item['id'] ?>, 'ACEITO')">✕</span>
+                <span class="remove-item" onclick="removerItem(<?= $item['id_item'] ?>, 'ACEITO')">✕</span>
               </div>
             <?php endif; ?>
           <?php endforeach; ?>
@@ -353,10 +364,10 @@ $rotaPerfil = "perfil-ong.php";
           <p class="empty-itens" id="empty-recusados">Nenhum item cadastrado ainda.</p>
         <?php else: ?>
           <?php foreach ($itens_recusados as $item): ?>
-            <?php if (isset($item['id']) && isset($item['nome'])): ?>
-              <div class="item-tag recusado" id="item-<?= $item['id'] ?>">
+            <?php if (isset($item['id_item']) && isset($item['nome'])): ?>
+              <div class="item-tag recusado" id="item-<?= $item['id_item'] ?>">
                 <?= htmlspecialchars($item['nome']) ?>
-                <span class="remove-item" onclick="removerItem(<?= $item['id'] ?>, 'RECUSADO')">✕</span>
+                <span class="remove-item" onclick="removerItem(<?= $item['id_item'] ?>, 'RECUSADO')">✕</span>
               </div>
             <?php endif; ?>
           <?php endforeach; ?>
@@ -419,24 +430,37 @@ $rotaPerfil = "perfil-ong.php";
         </div>
       <?php else: ?>
         <div class="coletas-list">
-          <?php foreach ($coletas as $coleta): ?>
-            <div class="coleta-card <?= $coleta['status'] === 'RECEBIDA' ? 'recebida' : '' ?>">
+          <?php foreach ($coletas as $coleta):
+            $is_pix      = $coleta['status'] === 'PENDENTE_PIX';
+            $is_recebida = $coleta['status'] === 'RECEBIDA';
+          ?>
+            <div class="coleta-card <?= $is_recebida ? 'recebida' : '' ?>">
               <div class="coleta-header">
                 <div class="coleta-tipo"><?= htmlspecialchars($coleta['tipo_formatado']) ?></div>
                 <div class="coleta-data"><?= date('d/m H:i', strtotime($coleta['data_agendada'])) ?></div>
               </div>
               <div class="coleta-doador">👤 Doador: <?= htmlspecialchars($coleta['nome_doador']) ?></div>
-              <div class="coleta-local">📍 Local: <?= htmlspecialchars($coleta['local_coleta']) ?></div>
+
+              <?php if (!$is_pix): ?>
+                <div class="coleta-local">📍 Local: <?= htmlspecialchars($coleta['local_coleta']) ?></div>
+              <?php endif; ?>
+
               <?php if (!empty($coleta['descricao_item'])): ?>
                 <div class="coleta-descricao"><strong>📦 Itens:</strong> <?= htmlspecialchars($coleta['descricao_item']) ?></div>
               <?php endif; ?>
               <?php if (!empty($coleta['valor'])): ?>
                 <div class="coleta-descricao"><strong>💰 Valor:</strong> R$ <?= number_format($coleta['valor'], 2, ',', '.') ?></div>
               <?php endif; ?>
-              <div class="coleta-status <?= $coleta['status'] === 'RECEBIDA' ? 'status-recebida' : 'status-agendada' ?>">
-                <?= $coleta['status'] === 'RECEBIDA' ? '✅ ' : '📅 ' ?><?= htmlspecialchars($coleta['status_formatado']) ?>
-              </div>
-              <?php if ($coleta['status'] === 'AGENDADA'): ?>
+
+              <?php if ($is_pix): ?>
+                <div class="status-pix-pendente">💜 Aguardando confirmação do PIX</div>
+                <button class="btn-confirmar-pix" onclick="confirmarRecebimento(<?= $coleta['id_doacao'] ?>)">
+                  💜 Confirmar Recebimento do PIX
+                </button>
+              <?php elseif ($is_recebida): ?>
+                <div class="coleta-status status-recebida">✅ Coleta Recebida</div>
+              <?php else: ?>
+                <div class="coleta-status status-agendada">📅 Coleta Agendada</div>
                 <button class="btn-confirmar" onclick="confirmarRecebimento(<?= $coleta['id_doacao'] ?>)">
                   ✅ Confirmar Recebimento
                 </button>
@@ -489,7 +513,6 @@ const swalONG = Swal.mixin({
     customClass: { container: 'swal-inside-phone', popup: 'swal-popup-ong' }
 });
 
-// ── Flash message ─────────────────────────────────────────────────────────
 (function() {
     const p = new URLSearchParams(window.location.search);
     const msg = p.get('msg'), tipo = p.get('tipo');
@@ -506,13 +529,11 @@ const swalONG = Swal.mixin({
     }
 })();
 
-// ── Info de verificação ───────────────────────────────────────────────────
 function mostrarInfoVerificacao() {
     const status = '<?= $verificacao_status ?>';
     const configs = {
         aprovada: {
-            title: '✅ ONG Verificada',
-            icon: 'success',
+            title: '✅ ONG Verificada', icon: 'success',
             html: `<div style="text-align:left;font-size:13px;line-height:1.8;">
                 <p>Sua ONG foi verificada com sucesso!</p><br>
                 <p>🪪 <strong>CNPJ validado</strong> na Receita Federal</p>
@@ -521,8 +542,7 @@ function mostrarInfoVerificacao() {
             </div>`
         },
         pendente: {
-            title: '⏳ Verificação em Análise',
-            icon: 'info',
+            title: '⏳ Verificação em Análise', icon: 'info',
             html: `<div style="text-align:left;font-size:13px;line-height:1.8;">
                 <p>Sua solicitação de verificação está sendo analisada.</p><br>
                 <p>📋 Certifique-se de que seu <strong>CNPJ está cadastrado</strong> corretamente</p>
@@ -531,8 +551,7 @@ function mostrarInfoVerificacao() {
             </div>`
         },
         rejeitada: {
-            title: '❌ Verificação não Aprovada',
-            icon: 'error',
+            title: '❌ Verificação não Aprovada', icon: 'error',
             html: `<div style="text-align:left;font-size:13px;line-height:1.8;">
                 <p>Sua solicitação de verificação não foi aprovada.</p><br>
                 <p>🔍 Verifique se o <strong>CNPJ está correto</strong> e ativo</p>
@@ -544,7 +563,6 @@ function mostrarInfoVerificacao() {
     swalONG.fire({ title: c.title, html: c.html, icon: c.icon, confirmButtonText: 'Entendi' });
 }
 
-// ── Abas ──────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', function () {
@@ -558,13 +576,11 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
-// ── Notificações ──────────────────────────────────────────────────────────
 async function atualizarNotificacoes() {
     try {
         const res   = await fetch('contar_notificacoes.php');
         const data  = await res.json();
         const badge = document.getElementById('notificationBadge');
-        
         if (data.total > 0) {
             if (badge) {
                 badge.textContent = data.total;
@@ -579,7 +595,7 @@ async function atualizarNotificacoes() {
                 }
             }
         } else if (badge) {
-            badge.style.display = 'none'; // ← esconde em vez de remover
+            badge.style.display = 'none';
         }
     } catch (e) {}
 }
@@ -587,7 +603,6 @@ setInterval(atualizarNotificacoes, 30000);
 document.addEventListener('DOMContentLoaded', atualizarNotificacoes);
 document.body.style.overflow = 'hidden';
 
-// ── Confirmar recebimento ─────────────────────────────────────────────────
 async function confirmarRecebimento(idDoacao) {
     const result = await swalONG.fire({
         title: 'Confirmar recebimento?',
@@ -598,7 +613,6 @@ async function confirmarRecebimento(idDoacao) {
     if (result.isConfirmed) window.location.href = 'confirmar_recebimento.php?id=' + idDoacao;
 }
 
-// ── Excluir post ──────────────────────────────────────────────────────────
 async function excluirPost(idPost) {
     const result = await swalONG.fire({
         title: 'Excluir post?', text: 'Esta ação não pode ser desfeita.',
@@ -608,7 +622,6 @@ async function excluirPost(idPost) {
     if (result.isConfirmed) window.location.href = 'excluir_post.php?id=' + idPost;
 }
 
-// ── Modal itens ───────────────────────────────────────────────────────────
 function abrirModal(tipo) {
     document.getElementById('modal-tipo').value = tipo;
     document.getElementById('modal-titulo').textContent =
@@ -685,7 +698,6 @@ async function removerItem(idItem, tipo) {
     }
 }
 
-// ── Carrossel ─────────────────────────────────────────────────────────────
 let destinoAtual = 0;
 
 function navegarDestino(direcao) {

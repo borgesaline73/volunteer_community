@@ -16,19 +16,21 @@ if (!$id_doacao) {
     exit;
 }
 
-// Buscar informações da doação
+// Buscar informações da doação (suporta PIX e ITENS)
 try {
     $sql_doacao = "SELECT d.*, u.nome as nome_doador, u.email as email_doador,
                           c.data_agendada, c.endereco as local_coleta,
                           CASE 
                               WHEN d.tipo = 'ITEM'     THEN 'Doação de Itens'
-                              WHEN d.tipo = 'DINHEIRO' THEN 'Doação em Dinheiro'
+                              WHEN d.tipo = 'DINHEIRO' THEN 'Doação em Dinheiro (PIX)'
                               ELSE d.tipo
                           END as tipo_formatado
                    FROM doacoes d 
                    JOIN usuarios u ON d.id_doador = u.id_usuario 
-                   JOIN coletas c ON d.id_doacao = c.id_doacao
-                   WHERE d.id_doacao = ? AND d.id_ong = ? AND d.status = 'AGENDADA'";
+                   LEFT JOIN coletas c ON d.id_doacao = c.id_doacao
+                   WHERE d.id_doacao = ? 
+                   AND d.id_ong = ? 
+                   AND d.status IN ('AGENDADA', 'PENDENTE_PIX')";
 
     $stmt = $pdo->prepare($sql_doacao);
     $stmt->execute([$id_doacao, $id_ong]);
@@ -147,31 +149,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <span class="info-label">📦 Tipo:</span>
         <?= htmlspecialchars($doacao['tipo_formatado']) ?>
       </div>
+      
+      <!-- Exibir data apenas para doações de ITEM -->
+      <?php if ($doacao['tipo'] == 'ITEM' && !empty($doacao['data_agendada'])): ?>
       <div class="info-item">
-        <span class="info-label">📅 Data:</span>
+        <span class="info-label">📅 Data Agendada:</span>
         <?= date('d/m/Y H:i', strtotime($doacao['data_agendada'])) ?>
       </div>
+      <?php endif; ?>
+      
+      <!-- Exibir local apenas para doações de ITEM -->
+      <?php if ($doacao['tipo'] == 'ITEM' && !empty($doacao['local_coleta'])): ?>
       <div class="info-item">
         <span class="info-label">📍 Local:</span>
         <?= htmlspecialchars($doacao['local_coleta']) ?>
       </div>
-      <?php if (!empty($doacao['descricao_item'])): ?>
-        <div class="info-item">
-          <span class="info-label">📝 Itens:</span>
-          <?= htmlspecialchars($doacao['descricao_item']) ?>
-        </div>
       <?php endif; ?>
-      <?php if (!empty($doacao['valor'])): ?>
-        <div class="info-item">
-          <span class="info-label">💰 Valor:</span>
-          R$ <?= number_format($doacao['valor'], 2, ',', '.') ?>
-        </div>
+      
+      <!-- Itens doados (apenas ITEM) -->
+      <?php if ($doacao['tipo'] == 'ITEM' && !empty($doacao['descricao_item'])): ?>
+      <div class="info-item">
+        <span class="info-label">📝 Itens:</span>
+        <?= htmlspecialchars($doacao['descricao_item']) ?>
+      </div>
+      <?php endif; ?>
+      
+      <!-- Valor da doação (apenas PIX) -->
+      <?php if ($doacao['tipo'] == 'DINHEIRO' && !empty($doacao['valor'])): ?>
+      <div class="info-item">
+        <span class="info-label">💰 Valor:</span>
+        R$ <?= number_format($doacao['valor'], 2, ',', '.') ?>
+      </div>
+      <?php endif; ?>
+      
+      <!-- Comprovante PIX (apenas PIX) -->
+      <?php if ($doacao['tipo'] == 'DINHEIRO' && !empty($doacao['comprovante'])): ?>
+      <div class="info-item">
+        <span class="info-label">📎 Comprovante:</span>
+        <a href="#" onclick="visualizarComprovante('<?= htmlspecialchars($doacao['comprovante']) ?>')" 
+           style="color: #f4822f; text-decoration: none;">
+          📄 Clique para visualizar
+        </a>
+      </div>
       <?php endif; ?>
     </div>
 
     <!-- CAIXA DE CONFIRMAÇÃO -->
     <div class="confirm-box">
-      <div class="confirm-icon">📦✅</div>
+      <div class="confirm-icon"><?= $doacao['tipo'] == 'DINHEIRO' ? '💰✅' : '📦✅' ?></div>
       <h3>A doação foi recebida?</h3>
       <p>Esta ação notificará o doador e mudará o status para "RECEBIDA".</p>
     </div>
@@ -230,16 +255,25 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // ===== POPUP DE CONFIRMAÇÃO ANTES DE SUBMETER =====
 async function confirmarRecebimento() {
+    let detalhesDoacao = `
+        <div style="text-align:left; font-size:13px; line-height:1.8;">
+            <strong>👤 Doador:</strong> <?= htmlspecialchars(addslashes($doacao['nome_doador'])) ?><br>
+            <strong>📦 Tipo:</strong> <?= htmlspecialchars(addslashes($doacao['tipo_formatado'])) ?><br>`;
+    
+    <?php if ($doacao['tipo'] == 'ITEM'): ?>
+    detalhesDoacao += `
+            <strong>📅 Data:</strong> <?= date('d/m/Y H:i', strtotime($doacao['data_agendada'])) ?><br>
+            <strong>📍 Local:</strong> <?= htmlspecialchars(addslashes($doacao['local_coleta'])) ?><br>`;
+    <?php else: ?>
+    detalhesDoacao += `
+            <strong>💰 Valor:</strong> R$ <?= number_format($doacao['valor'], 2, ',', '.') ?><br>`;
+    <?php endif; ?>
+    
+    detalhesDoacao += `</div>`;
+    
     const result = await swalConfirmar.fire({
         title: 'Confirmar recebimento?',
-        html: `
-            <div style="text-align:left; font-size:13px; line-height:1.8;">
-                <strong>👤 Doador:</strong> <?= htmlspecialchars(addslashes($doacao['nome_doador'])) ?><br>
-                <strong>📦 Tipo:</strong> <?= htmlspecialchars(addslashes($doacao['tipo_formatado'])) ?><br>
-                <strong>📅 Data:</strong> <?= date('d/m/Y H:i', strtotime($doacao['data_agendada'])) ?><br>
-                <strong>📍 Local:</strong> <?= htmlspecialchars(addslashes($doacao['local_coleta'])) ?>
-            </div>
-        `,
+        html: detalhesDoacao,
         icon: 'question',
         showCancelButton: true,
         confirmButtonText: '✅ Sim, confirmar',
@@ -256,6 +290,19 @@ async function confirmarRecebimento() {
         document.body.appendChild(form);
         form.submit();
     }
+}
+
+// Função para visualizar comprovante PIX
+function visualizarComprovante(caminho) {
+    swalConfirmar.fire({
+        title: 'Comprovante de Pagamento',
+        imageUrl: caminho,
+        imageWidth: '100%',
+        imageHeight: 'auto',
+        imageAlt: 'Comprovante PIX',
+        confirmButtonText: 'Fechar',
+        confirmButtonColor: '#f4822f'
+    });
 }
 </script>
 
