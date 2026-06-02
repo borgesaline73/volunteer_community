@@ -11,35 +11,37 @@ if (!isset($_SESSION["usuario_id"])) {
 
 $id_usuario = $_SESSION["usuario_id"];
 $tipo = $_SESSION["usuario_tipo"] ?? null;
+$total = 0;
 
 try {
     if ($tipo === "instituicao") {
-        // Para ONGs: contar coletas não visualizadas
-        $sql = "SELECT COUNT(DISTINCT d.id_doacao) as total 
-                FROM doacoes d 
+        // ✅ REMOVIDO: AND c.data_agendada >= CURRENT_DATE
+        $sql = "SELECT COUNT(DISTINCT d.id_doacao) as total
+                FROM doacoes d
                 JOIN coletas c ON d.id_doacao = c.id_doacao
-                LEFT JOIN coletas_visualizadas cv ON d.id_doacao = cv.id_doacao AND cv.id_ong = ?
-                WHERE d.id_ong = ? 
+                LEFT JOIN coletas_visualizadas cv
+                    ON d.id_doacao = cv.id_doacao AND cv.id_ong = ?
+                WHERE d.id_ong = ?
                 AND d.status = 'AGENDADA'
-                AND (cv.visualizada IS NULL OR cv.visualizada = FALSE)";
-        
+                AND (cv.id_doacao IS NULL OR cv.visualizada = FALSE)";
+
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$id_usuario, $id_usuario]);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        $total = (int)($result['total'] ?? 0);
     } else {
-        // Para doadores: contar notificações não lidas
-        $sql = "SELECT COUNT(*) as total FROM notificacoes 
+        $sql = "SELECT COUNT(*) as total
+                FROM notificacoes
                 WHERE id_usuario = ? AND lida = FALSE";
+
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$id_usuario]);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        $total = (int)($result['total'] ?? 0);
     }
-    
-    echo json_encode(['total' => $total]);
+
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    $total = (int)($row['total'] ?? 0);
+
 } catch (PDOException $e) {
     error_log("Erro ao contar notificações: " . $e->getMessage());
-    echo json_encode(['total' => 0]);
 }
+
+echo json_encode(['total' => $total]);
 ?>

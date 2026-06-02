@@ -2,17 +2,14 @@
 session_start();
 require "banco.php";
 
-// Bloqueio para usuários não logados
 if (!isset($_SESSION["usuario_id"])) {
     header("Location: login.php");
     exit;
 }
 
-// Tipo do usuário
 $tipo = $_SESSION["usuario_tipo"] ?? null;
 $id_usuario = $_SESSION["usuario_id"];
 
-// DEBUG: Verificar se há notificações no banco (CORRIGIDO)
 try {
     $teste = $pdo->prepare("SELECT COUNT(*) as total FROM notificacoes WHERE id_usuario = ?");
     $teste->execute([$id_usuario]);
@@ -22,7 +19,6 @@ try {
     error_log("Erro no debug: " . $e->getMessage());
 }
 
-// Rota do botão + e perfil
 if ($tipo === "instituicao") {
     $rotaPlus = "criar_post.php";
     $rotaPerfil = "perfil-ong.php";
@@ -31,11 +27,9 @@ if ($tipo === "instituicao") {
     $rotaPerfil = "perfil.php";
 }
 
-// Buscar TODAS as notificações
 $notificacoes = [];
 
 try {
-    // Buscar notificações da tabela notificacoes
     $sql = "SELECT * FROM notificacoes 
             WHERE id_usuario = ? 
             ORDER BY data_envio DESC";
@@ -43,7 +37,6 @@ try {
     $stmt->execute([$id_usuario]);
     $notificacoes_tabela = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Se for instituição e não encontrou notificações, buscar coletas
     if (empty($notificacoes_tabela) && $tipo === "instituicao") {
         $sql_coletas = "SELECT d.*, u.nome as nome_doador, u.email as email_doador,
                                c.data_agendada, c.endereco as local_coleta,
@@ -85,7 +78,6 @@ try {
         }
     }
     
-    // Separar por período
     $notificacoes_hoje = [];
     $notificacoes_semana = [];
     $notificacoes_anteriores = [];
@@ -114,7 +106,6 @@ try {
     error_log("Erro: " . $e->getMessage());
 }
 
-// Calcular total de não lidas
 $total_nao_lidas = 0;
 foreach ($notificacoes_hoje as $notif) {
     if (!$notif['lida']) $total_nao_lidas++;
@@ -123,7 +114,6 @@ foreach ($notificacoes_semana as $notif) {
     if (!$notif['lida']) $total_nao_lidas++;
 }
 
-// Funções auxiliares
 function formatarDataRelativa($data) {
     $agora = new DateTime();
     $data_notificacao = new DateTime($data);
@@ -144,35 +134,21 @@ function formatarDataRelativa($data) {
 }
 
 function getIconeMensagem($mensagem, $tipo = null) {
-    if ($tipo === 'COLETA_AGENDADA') {
-        return '📦';
-    } elseif (strpos($mensagem, 'agendou') !== false) {
-        return '📦';
-    } elseif (strpos($mensagem, 'publicou') !== false) {
-        return '📢';
-    } elseif (strpos($mensagem, 'curtiu') !== false) {
-        return '❤️';
-    } elseif (strpos($mensagem, 'comentou') !== false) {
-        return '💬';
-    } else {
-        return '🔔';
-    }
+    if ($tipo === 'COLETA_AGENDADA') return '📦';
+    elseif (strpos($mensagem, 'agendou') !== false) return '📦';
+    elseif (strpos($mensagem, 'publicou') !== false) return '📢';
+    elseif (strpos($mensagem, 'curtiu') !== false) return '❤️';
+    elseif (strpos($mensagem, 'comentou') !== false) return '💬';
+    else return '🔔';
 }
 
 function getTituloMensagem($mensagem, $tipo = null) {
-    if ($tipo === 'COLETA_AGENDADA') {
-        return 'Nova Coleta Agendada';
-    } elseif (strpos($mensagem, 'agendou') !== false) {
-        return 'Nova Coleta';
-    } elseif (strpos($mensagem, 'publicou') !== false) {
-        return 'Nova Publicação';
-    } elseif (strpos($mensagem, 'curtiu') !== false) {
-        return 'Nova Curtida';
-    } elseif (strpos($mensagem, 'comentou') !== false) {
-        return 'Novo Comentário';
-    } else {
-        return 'Notificação';
-    }
+    if ($tipo === 'COLETA_AGENDADA') return 'Nova Coleta Agendada';
+    elseif (strpos($mensagem, 'agendou') !== false) return 'Nova Coleta';
+    elseif (strpos($mensagem, 'publicou') !== false) return 'Nova Publicação';
+    elseif (strpos($mensagem, 'curtiu') !== false) return 'Nova Curtida';
+    elseif (strpos($mensagem, 'comentou') !== false) return 'Novo Comentário';
+    else return 'Notificação';
 }
 ?>
 
@@ -185,6 +161,44 @@ function getTituloMensagem($mensagem, $tipo = null) {
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/estilo_global.css">
 <link rel="stylesheet" href="css/estilo_notificacoes.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+<style>
+.swal2-container.swal-inside-notif {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 9999;
+}
+
+.swal2-container.swal-inside-notif .swal2-popup {
+    width: 88% !important;
+    max-width: 320px !important;
+    border-radius: 20px !important;
+    font-family: 'Poppins', sans-serif !important;
+}
+
+.swal2-confirm {
+    background-color: #f4822f !important;
+    border-radius: 50px !important;
+    padding: 8px 20px !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+}
+
+.swal2-cancel {
+    border-radius: 50px !important;
+    padding: 8px 20px !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+}
+
+.phone {
+    position: relative;
+}
+</style>
 </head>
 <body>
 
@@ -328,7 +342,6 @@ function getTituloMensagem($mensagem, $tipo = null) {
     <?php endif; ?>
   </div>
 
-  <!-- MENU INFERIOR -->
   <div class="bottom">
     <a href="feed.php" class="menu-item">🏠<span>Feed</span></a>
     <a href="campanhas.php" class="menu-item">📢<span>Campanhas</span></a>
@@ -344,17 +357,27 @@ function getTituloMensagem($mensagem, $tipo = null) {
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
 const tipoUsuario = "<?= $tipo ?>";
+const phoneEl = document.querySelector('.phone');
 
-// Marcar notificação como lida ao clicar
+const swalNotif = Swal.mixin({
+    target: phoneEl,
+    confirmButtonColor: '#f4822f',
+    cancelButtonColor: '#aaa',
+    customClass: {
+        container: 'swal-inside-notif',
+        popup: 'swal-popup-notif'
+    }
+});
+
 document.querySelectorAll('.notification-item').forEach(item => {
     item.addEventListener('click', function(e) {
         if (e.target.classList.contains('notification-details')) return;
-        
         const idNotificacao = this.dataset.id;
         const idDoacao = this.dataset.doacao;
-        
         if (this.classList.contains('unread')) {
             marcarComoLida(idNotificacao, idDoacao, this);
         }
@@ -408,15 +431,100 @@ async function marcarTodasComoLidas() {
     const confirmMessage = tipoUsuario === "instituicao" 
         ? 'Marcar TODAS as coletas como visualizadas?' 
         : 'Marcar TODAS as notificações como lidas?';
-    
-    if (!confirm(confirmMessage)) return;
-    
+
+    const result = await swalNotif.fire({
+        title: '🔔 Limpar notificações',
+        text: confirmMessage,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: '✅ Confirmar',
+        cancelButtonText: '❌ Cancelar'
+    });
+
+    if (result.isConfirmed) {
+        await _marcarTodasNoBanco();
+    }
+}
+
+async function marcarTodasAoAbrir() {
+    const unreadItems = document.querySelectorAll('.notification-item.unread');
+    if (unreadItems.length === 0) return;
+
     try {
-        let url = 'marcar_todas_notificacoes.php';
-        
-        const response = await fetch(url, { method: 'POST' });
-        const data = await response.json();
-        
+        // ✅ CORRIGIDO: era 'marcar_todas_notificacoes.php'
+        const response = await fetch('marcar_todas_lidas.php', { method: 'POST' });
+
+        if (!response.ok) return;
+
+        const text = await response.text();
+        if (!text) return;
+
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            console.error('Resposta inválida:', text);
+            return;
+        }
+
+        if (data.success) {
+            unreadItems.forEach(item => {
+                item.classList.remove('unread');
+                const timeElement = item.querySelector('.notification-time');
+                if (timeElement && !timeElement.querySelector('.visualizada-badge')) {
+                    const badge = document.createElement('span');
+                    badge.className = 'visualizada-badge';
+                    badge.innerHTML = '✓ Visualizada';
+                    timeElement.appendChild(badge);
+                }
+            });
+
+            const clearBtn = document.getElementById('clear-btn');
+            if (clearBtn) {
+                clearBtn.innerHTML = 'Limpar';
+                clearBtn.disabled = true;
+                clearBtn.style.opacity = '0.5';
+            }
+
+            const badge = document.getElementById('badge-count');
+            if (badge) badge.style.display = 'none';
+
+            atualizarBadgeMenu();
+        }
+    } catch (error) {
+        console.error('Erro ao marcar notificações ao abrir:', error);
+    }
+}
+
+async function _marcarTodasNoBanco() {
+    try {
+        // ✅ CORRIGIDO: era 'marcar_todas_notificacoes.php'
+        const response = await fetch('marcar_todas_lidas.php', { method: 'POST' });
+
+        if (!response.ok) {
+            await swalNotif.fire({
+                title: '⚠️ Erro',
+                text: 'Erro ao conectar com o servidor',
+                icon: 'error',
+                confirmButtonText: 'Ok'
+            });
+            return;
+        }
+
+        const text = await response.text();
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            await swalNotif.fire({
+                title: '⚠️ Erro',
+                text: 'Resposta inválida do servidor',
+                icon: 'error',
+                confirmButtonText: 'Ok'
+            });
+            return;
+        }
+
         if (data.success) {
             document.querySelectorAll('.notification-item.unread').forEach(item => {
                 item.classList.remove('unread');
@@ -438,13 +546,30 @@ async function marcarTodasComoLidas() {
                 clearBtn.disabled = true;
                 clearBtn.style.opacity = '0.5';
             }
-            
-            alert(data.message || 'Todas as notificações foram marcadas como lidas!');
+
+            await swalNotif.fire({
+                title: '✅ Pronto!',
+                text: data.message || 'Todas as notificações foram marcadas como lidas!',
+                icon: 'success',
+                confirmButtonText: 'Ok',
+                timer: 2500,
+                timerProgressBar: true
+            });
         } else {
-            alert('Erro: ' + (data.error || 'Tente novamente'));
+            await swalNotif.fire({
+                title: '⚠️ Erro',
+                text: data.error || 'Tente novamente',
+                icon: 'error',
+                confirmButtonText: 'Ok'
+            });
         }
     } catch (error) {
-        alert('Erro ao conectar com o servidor');
+        await swalNotif.fire({
+            title: '⚠️ Erro',
+            text: 'Erro ao conectar com o servidor',
+            icon: 'error',
+            confirmButtonText: 'Ok'
+        });
     }
 }
 
@@ -500,9 +625,20 @@ async function atualizarBadgeMenu() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+   marcarTodasAoAbrir();
     atualizarContadorNotificacoes();
-    atualizarBadgeMenu();
     document.body.style.overflow = 'hidden';
+});
+// ✅ Marca como lidas quando o usuário SAIR da página
+document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'hidden') {
+        navigator.sendBeacon('marcar_todas_lidas.php');
+    }
+});
+
+// ✅ Também marca ao navegar para outra página
+window.addEventListener('beforeunload', function() {
+    navigator.sendBeacon('marcar_todas_lidas.php');
 });
 </script>
 

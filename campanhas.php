@@ -49,11 +49,9 @@ try {
 function getRandomPosts($pdo, $categoria_banco, $categoria, $limit = 10) {
     try {
         if ($categoria == "todos") {
-            // Contar total de posts
             $countQuery = $pdo->query("SELECT COUNT(*) as total FROM posts");
             $total = $countQuery->fetch(PDO::FETCH_ASSOC)['total'];
-            
-            // Se tiver poucos posts, pega todos
+
             if ($total <= $limit) {
                 $query = $pdo->query("SELECT p.*, u.nome, u.id_usuario as id_ong 
                                       FROM posts p 
@@ -61,21 +59,20 @@ function getRandomPosts($pdo, $categoria_banco, $categoria, $limit = 10) {
                                       ORDER BY p.data_post DESC");
                 return $query->fetchAll(PDO::FETCH_ASSOC);
             }
-            
-            // Pegar posts aleatórios
+
+            // ✅ CORRIGIDO: RAND() → RANDOM() (PostgreSQL)
             $query = $pdo->query("SELECT p.*, u.nome, u.id_usuario as id_ong 
                                   FROM posts p 
                                   JOIN usuarios u ON p.id_usuario = u.id_usuario 
-                                  ORDER BY RAND() 
+                                  ORDER BY RANDOM() 
                                   LIMIT $limit");
             return $query->fetchAll(PDO::FETCH_ASSOC);
+
         } else {
-            // Contar total de posts na categoria
             $countQuery = $pdo->prepare("SELECT COUNT(*) as total FROM posts WHERE categoria = ?");
             $countQuery->execute([$categoria_banco]);
             $total = $countQuery->fetch(PDO::FETCH_ASSOC)['total'];
-            
-            // Se tiver poucos posts, pega todos
+
             if ($total <= $limit) {
                 $query = $pdo->prepare("SELECT p.*, u.nome, u.id_usuario as id_ong 
                                         FROM posts p 
@@ -85,13 +82,13 @@ function getRandomPosts($pdo, $categoria_banco, $categoria, $limit = 10) {
                 $query->execute([$categoria_banco]);
                 return $query->fetchAll(PDO::FETCH_ASSOC);
             }
-            
-            // Pegar posts aleatórios da categoria
+
+            // ✅ CORRIGIDO: RAND() → RANDOM() (PostgreSQL)
             $query = $pdo->prepare("SELECT p.*, u.nome, u.id_usuario as id_ong 
                                     FROM posts p 
                                     JOIN usuarios u ON p.id_usuario = u.id_usuario 
                                     WHERE p.categoria = ? 
-                                    ORDER BY RAND() 
+                                    ORDER BY RANDOM() 
                                     LIMIT $limit");
             $query->execute([$categoria_banco]);
             return $query->fetchAll(PDO::FETCH_ASSOC);
@@ -102,7 +99,6 @@ function getRandomPosts($pdo, $categoria_banco, $categoria, $limit = 10) {
     }
 }
 
-// Número máximo de posts para exibir (ajuste conforme desejar)
 $MAX_POSTS = 8;
 $posts = getRandomPosts($pdo, $categoria_banco, $categoria, $MAX_POSTS);
 ?>
@@ -115,12 +111,9 @@ $posts = getRandomPosts($pdo, $categoria_banco, $categoria, $MAX_POSTS);
 <title>Campanhas - Conexão Solidária</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<!-- SweetAlert2 CSS -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 
 <style>
-/* ===== ESTILO ESPECÍFICO DA PÁGINA CAMPANHAS ===== */
-
 * {
   margin: 0;
   padding: 0;
@@ -162,7 +155,6 @@ body {
   overflow: hidden;
 }
 
-/* HEADER */
 .header {
   padding: 18px 20px 10px;
   background: #fff;
@@ -180,7 +172,6 @@ body {
   letter-spacing: -.5px;
 }
 
-/* MENU DE ABAS */
 .tab-menu {
   display: flex;
   gap: 6px;
@@ -224,14 +215,12 @@ body {
   font-weight: 600;
 }
 
-/* FEED CONTAINER */
 .feed-container {
   flex: 1;
   overflow-y: auto;
   padding: 12px 16px 20px;
 }
 
-/* ===== CARROSSEL - SOMENTE IMAGEM E TÍTULO ===== */
 .carousel-wrapper {
   position: relative;
   display: flex;
@@ -266,7 +255,6 @@ body {
   to   { opacity: 1; transform: translateX(0); }
 }
 
-/* IMAGEM DO CARROSSEL - APARECENDO POR COMPLETO */
 .carousel-img-wrapper {
   width: 100%;
   background: linear-gradient(135deg, #667eea, #764ba2);
@@ -297,7 +285,6 @@ body {
   font-size: 64px;
 }
 
-/* TÍTULO DO POST */
 .carousel-titulo {
   padding: 12px 16px;
   font-weight: 700;
@@ -308,7 +295,6 @@ body {
   border-top: 1px solid #f0f0f0;
 }
 
-/* Navegação do carrossel */
 .carousel-nav {
   background: #fff;
   border: 1.5px solid #eee;
@@ -339,7 +325,6 @@ body {
   pointer-events: none;
 }
 
-/* Dots do carrossel */
 .carousel-dots {
   display: flex;
   justify-content: center;
@@ -369,7 +354,6 @@ body {
   margin-bottom: 20px;
 }
 
-/* Botão de atualizar */
 .refresh-btn {
   display: block;
   width: 100%;
@@ -390,7 +374,6 @@ body {
   background: var(--oh);
 }
 
-/* Estado vazio */
 .empty-message {
   text-align: center;
   padding: 60px 20px;
@@ -406,7 +389,6 @@ body {
   margin-bottom: 16px;
 }
 
-/* MENU INFERIOR FIXO */
 .bottom {
   height: 74px;
   border-top: 1px solid #eee;
@@ -435,13 +417,8 @@ body {
   position: relative;
 }
 
-.menu-item:hover {
-  color: var(--orange);
-}
-
-.menu-item.active {
-  color: var(--orange);
-}
+.menu-item:hover { color: var(--orange); }
+.menu-item.active { color: var(--orange); }
 
 .plus-btn {
   width: 52px;
@@ -465,7 +442,6 @@ body {
   transform: scale(1.05);
 }
 
-/* BADGE DE NOTIFICAÇÃO */
 .notification-badge {
   position: absolute;
   top: -5px;
@@ -491,7 +467,6 @@ body {
   100% { transform: scale(1); }
 }
 
-/* SweetAlert personalizado */
 .phone .swal2-container.swal2-center {
     position: absolute !important;
     top: 0 !important;
@@ -531,7 +506,6 @@ body {
     <h1>ONGs do Mês</h1>
   </div>
 
-  <!-- MENU DE CATEGORIAS -->
   <div class="tab-menu" id="tabMenu">
     <a href="campanhas.php?categoria=todos"     class="tab-categoria <?php echo $categoria=='todos'     ? 'active' : ''; ?>">Todos</a>
     <a href="campanhas.php?categoria=educacao"  class="tab-categoria <?php echo $categoria=='educacao'  ? 'active' : ''; ?>">Educação</a>
@@ -547,51 +521,46 @@ body {
             <p><strong>Nenhuma publicação encontrada</strong></p>
             <p style="font-size:12px; margin-top:8px;"><?= $categoria != 'todos' ? 'na categoria "' . htmlspecialchars($categoria) . '"' : 'no momento' ?></p>
         </div>
-    <?php else: 
-        // Filtrar apenas posts com imagem
+    <?php else:
         $posts_com_imagem = array_filter($posts, function($post) {
             return !empty($post['imagem']);
         });
-        
-        // Se não houver posts com imagem, mostrar todos
+
         if (empty($posts_com_imagem)) {
             $posts_com_imagem = $posts;
         }
-        
+
         $posts_array = [];
         foreach ($posts_com_imagem as $post) {
             $posts_array[] = [
-                'id' => $post["id_post"],
+                'id'     => $post["id_post"],
                 'id_ong' => $post["id_ong"],
                 'titulo' => htmlspecialchars($post["titulo"]),
                 'imagem' => $post["imagem"] ?? null
             ];
         }
-        
+
         $total_posts = count($posts_array);
     ?>
-        <!-- CARROSSEL - SOMENTE IMAGEM E TÍTULO -->
         <div class="carousel-wrapper">
             <button class="carousel-nav" id="carouselPrev" onclick="navegarCarrossel(-1)">&#8592;</button>
             <div class="carousel-container" id="carouselContainer">
                 <?php foreach ($posts_array as $index => $post): ?>
-                    <div class="carousel-slide <?= $index === 0 ? 'active' : '' ?>" 
+                    <div class="carousel-slide <?= $index === 0 ? 'active' : '' ?>"
                          data-index="<?= $index ?>"
                          onclick="window.location.href='perfil-ong-publico.php?id=<?= $post['id_ong'] ?>'">
-                        
-                        <!-- SOMENTE A IMAGEM -->
+
                         <div class="carousel-img-wrapper">
                             <?php if (!empty($post['imagem'])): ?>
-                                <img src="uploads/<?= htmlspecialchars($post['imagem']) ?>" 
-                                     class="carousel-img" 
+                                <img src="uploads/<?= htmlspecialchars($post['imagem']) ?>"
+                                     class="carousel-img"
                                      alt="<?= $post['titulo'] ?>"
                                      onerror="this.onerror=null; this.style.display='none'; this.parentElement.innerHTML='<div class=\'carousel-img-placeholder\'>📢</div>'">
                             <?php else: ?>
                                 <div class="carousel-img-placeholder">📢</div>
                             <?php endif; ?>
                         </div>
-                        
-                        <!-- SOMENTE O TÍTULO -->
+
                         <div class="carousel-titulo">
                             <?= $post['titulo'] ?>
                         </div>
@@ -600,27 +569,23 @@ body {
             </div>
             <button class="carousel-nav" id="carouselNext" onclick="navegarCarrossel(1)">&#8594;</button>
         </div>
-        
-        <!-- Dots -->
+
         <div class="carousel-dots" id="carouselDots">
             <?php for ($i = 0; $i < $total_posts; $i++): ?>
                 <span class="dot <?= $i === 0 ? 'active' : '' ?>" onclick="irParaSlide(<?= $i ?>)"></span>
             <?php endfor; ?>
         </div>
-        
-        <!-- Contador -->
+
         <div class="carousel-counter">
             <span id="slideAtual">1</span> / <span id="slideTotal"><?= $total_posts ?></span>
         </div>
-        
-        <!-- Botão para atualizar (novos posts aleatórios) -->
+
         <button class="refresh-btn" onclick="window.location.reload()">
             🔄 Ver novas campanhas
         </button>
     <?php endif; ?>
   </div>
 
-  <!-- MENU INFERIOR -->
   <div class="bottom">
     <a href="feed.php" class="menu-item">
       🏠<span>Feed</span>
@@ -642,15 +607,12 @@ body {
 
 </div>
 
-<!-- SweetAlert2 JS -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
-// Variáveis do carrossel
 let slideAtual = 0;
 let totalSlides = <?= isset($posts_array) ? count($posts_array) : 0 ?>;
 
-// Referência ao elemento .phone para confinar os modais
 const phoneEl = document.getElementById('phone');
 
 const swalCampanhas = Swal.mixin({
@@ -659,26 +621,22 @@ const swalCampanhas = Swal.mixin({
     cancelButtonColor: '#aaa'
 });
 
-// ===== FUNÇÕES DO CARROSSEL =====
 function atualizarCarrossel() {
     const slides = document.querySelectorAll('.carousel-slide');
     const dots = document.querySelectorAll('.dot');
     const prevBtn = document.getElementById('carouselPrev');
     const nextBtn = document.getElementById('carouselNext');
     const slideAtualSpan = document.getElementById('slideAtual');
-    
+
     slides.forEach((slide, index) => {
         slide.classList.toggle('active', index === slideAtual);
     });
-    
+
     dots.forEach((dot, index) => {
         dot.classList.toggle('active', index === slideAtual);
     });
-    
-    if (slideAtualSpan) {
-        slideAtualSpan.textContent = slideAtual + 1;
-    }
-    
+
+    if (slideAtualSpan) slideAtualSpan.textContent = slideAtual + 1;
     if (prevBtn) prevBtn.disabled = slideAtual === 0;
     if (nextBtn) nextBtn.disabled = slideAtual === totalSlides - 1;
 }
@@ -695,7 +653,6 @@ function irParaSlide(index) {
     atualizarCarrossel();
 }
 
-// ===== FUNÇÃO PARA CENTRALIZAR A ABA CLICADA =====
 function centralizarAba(aba) {
     const menu = document.getElementById('tabMenu');
     if (!menu || !aba) return;
@@ -703,14 +660,9 @@ function centralizarAba(aba) {
     const menuRect = menu.getBoundingClientRect();
     const scrollLeft = menu.scrollLeft;
     const targetScroll = scrollLeft + (abaRect.left - menuRect.left) - (menuRect.width / 2) + (abaRect.width / 2);
-    
-    menu.scrollTo({
-        left: targetScroll,
-        behavior: 'smooth'
-    });
+    menu.scrollTo({ left: targetScroll, behavior: 'smooth' });
 }
 
-// ===== MOSTRAR MENSAGEM FLASH =====
 <?php if (!empty($mensagem_flash) && !empty($tipo_flash)): ?>
 document.addEventListener('DOMContentLoaded', function() {
     swalCampanhas.fire({
@@ -729,31 +681,23 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 <?php endif; ?>
 
-// ===== INICIALIZAÇÃO =====
 document.addEventListener('DOMContentLoaded', function() {
-    // Centralizar aba ativa
     const activeTab = document.querySelector('.tab-categoria.active');
     if (activeTab) {
-        setTimeout(() => {
-            centralizarAba(activeTab);
-        }, 100);
+        setTimeout(() => centralizarAba(activeTab), 100);
     }
-    
-    // Adicionar evento de clique para centralizar
+
     document.querySelectorAll('.tab-categoria').forEach(tab => {
-        tab.addEventListener('click', function(e) {
-            setTimeout(() => {
-                centralizarAba(this);
-            }, 50);
+        tab.addEventListener('click', function() {
+            setTimeout(() => centralizarAba(this), 50);
         });
     });
 });
 
-// ===== ATUALIZAR NOTIFICAÇÕES =====
 async function atualizarNotificacoes() {
     try {
-        const res   = await fetch('contar_notificacoes.php');
-        const data  = await res.json();
+        const res  = await fetch('contar_notificacoes.php');
+        const data = await res.json();
         const badge = document.getElementById('notificationBadge');
         if (data.total > 0) {
             if (badge) badge.textContent = data.total;
@@ -774,7 +718,6 @@ async function atualizarNotificacoes() {
 setInterval(atualizarNotificacoes, 30000);
 document.addEventListener('DOMContentLoaded', atualizarNotificacoes);
 
-// Prevenir scroll do body
 document.body.style.overflow = 'hidden';
 </script>
 

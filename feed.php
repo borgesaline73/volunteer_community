@@ -2,7 +2,6 @@
 session_start();
 require "banco.php";
 
-// ===== CAPTURAR MENSAGEM DE SUCESSO DA URL =====
 $mensagem_flash = '';
 $tipo_flash = '';
 if (isset($_GET['msg']) && isset($_GET['tipo'])) {
@@ -10,47 +9,19 @@ if (isset($_GET['msg']) && isset($_GET['tipo'])) {
     $tipo_flash = $_GET['tipo'];
 }
 
-// Verificar se usuário está logado
 if (!isset($_SESSION["usuario_id"])) {
     header("Location: login.php");
     exit;
 }
 
-// Define o comportamento do botão "+" e perfil
 $tipoUsuario = $_SESSION["usuario_tipo"] ?? null;
 
-// Definir rotas baseadas no tipo de usuário
 if ($tipoUsuario === "instituicao") {
     $acaoPlus = "criar_post.php";
     $rotaPerfil = "perfil-ong.php";
 } else {
     $acaoPlus = "agendar_coleta.php";
     $rotaPerfil = "perfil.php";
-}
-
-// Buscar total de notificações não lidas
-$total_notificacoes = 0;
-try {
-    if ($tipoUsuario === "instituicao") {
-        // Para ONGs: contar coletas não visualizadas
-        $sql = "SELECT COUNT(*) as total 
-                FROM doacoes d 
-                JOIN coletas c ON d.id_doacao = c.id_doacao
-                LEFT JOIN coletas_visualizadas cv ON d.id_doacao = cv.id_doacao AND cv.id_ong = ?
-                WHERE d.id_ong = ? 
-                AND d.status = 'AGENDADA'
-                AND (cv.visualizada IS NULL OR cv.visualizada = FALSE)";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute([$_SESSION["usuario_id"], $_SESSION["usuario_id"]]);
-        $total_notificacoes = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
-    } else {
-        // Para doadores: contar notificações não lidas
-        $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM notificacoes WHERE id_usuario = ? AND lida = FALSE");
-        $stmt->execute([$_SESSION["usuario_id"]]);
-        $total_notificacoes = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
-    }
-} catch (PDOException $e) {
-    error_log("Erro ao contar notificações: " . $e->getMessage());
 }
 ?>
 
@@ -65,8 +36,6 @@ try {
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="stylesheet" href="css/estilo_global.css">
 <link rel="stylesheet" href="css/estilo_feed.css">
-
-<!-- SweetAlert2 CSS -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 
 <style>
@@ -106,7 +75,6 @@ try {
         font-size: 13px !important;
     }
 
-    /* Badge de notificações */
     .notification-badge {
         position: absolute;
         top: -5px;
@@ -118,7 +86,7 @@ try {
         height: 18px;
         font-size: 10px;
         font-weight: bold;
-        display: flex;
+        display: none;
         align-items: center;
         justify-content: center;
         z-index: 10;
@@ -149,7 +117,6 @@ try {
   <div class="feed-container">
     <?php
     try {
-        // Buscar todos os posts com o ID correto da ONG
         $query = $pdo->query("SELECT p.*, u.nome, u.id_usuario as id_ong FROM posts p 
                               JOIN usuarios u ON p.id_usuario = u.id_usuario
                               WHERE u.tipo_usuario = 'instituicao'
@@ -158,7 +125,6 @@ try {
         $posts = $query->fetchAll(PDO::FETCH_ASSOC);
 
         if (!$posts || count($posts) === 0): ?>
-            
             <div class="empty-feed">
               <div>
                 <p style="font-size:16px; margin-bottom:8px;">📭</p>
@@ -168,12 +134,10 @@ try {
             </div>
 
         <?php else: ?>
-        
           <?php foreach ($posts as $post): 
             $descricao = $post['descricao'];
             $temTextoLongo = strlen($descricao) > 200;
             $id_ong_perfil = (int)$post['id_ong'];
-            
             if ($id_ong_perfil <= 0) continue;
           ?>
             <div class="post-card-solidario">
@@ -264,9 +228,7 @@ try {
     <a href="notificacoes.php" class="menu-item">
       🔔
       <span>Notificações</span>
-      <?php if ($total_notificacoes > 0): ?>
-        <span class="notification-badge" id="notificationBadge"><?= $total_notificacoes ?></span>
-      <?php endif; ?>
+      <span class="notification-badge" id="notificationBadge"></span>
     </a>
 
     <a href="<?= $rotaPerfil ?>" class="menu-item">
@@ -328,35 +290,24 @@ function toggleContent(postId, button) {
     }
 }
 
-// ===== FUNÇÃO PARA ATUALIZAR BADGE DE NOTIFICAÇÕES =====
 async function atualizarBadgeNotificacoes() {
     try {
         const response = await fetch('contar_notificacoes.php');
         const data = await response.json();
         
         const badge = document.getElementById('notificationBadge');
-        const notifLink = document.querySelector('a[href="notificacoes.php"]');
         
         if (data.total > 0) {
-            if (badge) {
-                badge.textContent = data.total;
-                badge.style.display = 'flex';
-            } else if (notifLink) {
-                const span = document.createElement('span');
-                span.className = 'notification-badge';
-                span.id = 'notificationBadge';
-                span.textContent = data.total;
-                notifLink.appendChild(span);
-            }
+            badge.textContent = data.total;
+            badge.style.display = 'flex';
         } else {
-            if (badge) badge.style.display = 'none';
+            badge.style.display = 'none';
         }
     } catch (error) {
         console.error('Erro ao buscar notificações:', error);
     }
 }
 
-// ===== MENSAGEM FLASH =====
 <?php if (!empty($mensagem_flash) && !empty($tipo_flash)): ?>
 document.addEventListener('DOMContentLoaded', function() {
     swalFeed.fire({
@@ -375,7 +326,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 <?php endif; ?>
 
-// ===== MENSAGEM DE BOAS-VINDAS =====
 document.addEventListener('DOMContentLoaded', function() {
     const lastVisit = localStorage.getItem('lastVisit');
     const today = new Date().toDateString();
@@ -399,7 +349,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 1000);
     }
     
-    // Atualizar badge ao carregar
+    // Badge controlado 100% pelo JS — sem valor PHP
     atualizarBadgeNotificacoes();
 });
 
