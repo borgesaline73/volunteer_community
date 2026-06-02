@@ -469,20 +469,27 @@ document.addEventListener('DOMContentLoaded', function () {
 // ===== NOTIFICAÇÕES =====
 async function atualizarNotificacoes() {
     try {
-        const response = await fetch('contar_notificacoes.php');
-        const data = await response.json();
+        const res   = await fetch('contar_notificacoes.php');
+        const data  = await res.json();
         const badge = document.getElementById('notificationBadge');
         
         if (data.total > 0) {
             if (badge) {
                 badge.textContent = data.total;
+            } else {
+                const notifLink = document.querySelector('a[href="notificacoes.php"]');
+                if (notifLink) {
+                    const span = document.createElement('span');
+                    span.className = 'notification-badge';
+                    span.id = 'notificationBadge';
+                    span.textContent = data.total;
+                    notifLink.appendChild(span);
+                }
             }
         } else if (badge) {
-            badge.remove();
+            badge.style.display = 'none'; // ← esconde em vez de remover
         }
-    } catch (error) {
-        console.error('Erro ao atualizar notificações:', error);
-    }
+    } catch (e) {}
 }
 
 // Atualizar a cada 30 segundos

@@ -564,8 +564,23 @@ async function atualizarNotificacoes() {
         const res   = await fetch('contar_notificacoes.php');
         const data  = await res.json();
         const badge = document.getElementById('notificationBadge');
-        if (data.total > 0) { if (badge) badge.textContent = data.total; }
-        else if (badge) badge.remove();
+        
+        if (data.total > 0) {
+            if (badge) {
+                badge.textContent = data.total;
+            } else {
+                const notifLink = document.querySelector('a[href="notificacoes.php"]');
+                if (notifLink) {
+                    const span = document.createElement('span');
+                    span.className = 'notification-badge';
+                    span.id = 'notificationBadge';
+                    span.textContent = data.total;
+                    notifLink.appendChild(span);
+                }
+            }
+        } else if (badge) {
+            badge.style.display = 'none'; // ← esconde em vez de remover
+        }
     } catch (e) {}
 }
 setInterval(atualizarNotificacoes, 30000);
