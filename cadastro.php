@@ -7,19 +7,18 @@ $tipo_erro = '';
 
 // ════════════════════════════════════════════════════════════
 //  FUNÇÃO: Consulta CNPJ na BrasilAPI e atualiza o banco
+//  (APENAS VALIDA - NÃO SALVA DADOS EXTRAS)
 // ════════════════════════════════════════════════════════════
 function verificarCNPJAutomatico(PDO $pdo, int $id_usuario, string $cnpj): array
 {
     $cnpj_limpo = preg_replace('/\D/', '', $cnpj);
 
-    // CNPJ com dígitos inválidos → rejeita imediatamente
     if (strlen($cnpj_limpo) !== 14) {
         $pdo->prepare("UPDATE usuarios SET verificada = false, verificacao_status = 'rejeitada' WHERE id_usuario = ?")
             ->execute([$id_usuario]);
         return ['status' => 'rejeitada', 'mensagem' => 'CNPJ inválido (deve ter 14 dígitos).'];
     }
 
-    // Consulta à BrasilAPI
     $ch = curl_init("https://brasilapi.com.br/api/cnpj/v1/{$cnpj_limpo}");
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
@@ -32,7 +31,6 @@ function verificarCNPJAutomatico(PDO $pdo, int $id_usuario, string $cnpj): array
     $curl_erro = curl_error($ch);
     curl_close($ch);
 
-    // Falha de rede → pendente (não penaliza a ONG por instabilidade)
     if ($curl_erro || $response === false) {
         $pdo->prepare("UPDATE usuarios SET verificada = false, verificacao_status = 'pendente' WHERE id_usuario = ?")
             ->execute([$id_usuario]);
@@ -41,44 +39,32 @@ function verificarCNPJAutomatico(PDO $pdo, int $id_usuario, string $cnpj): array
 
     $data = json_decode($response, true);
 
-    // ── CORREÇÃO: verificar HTTP code ANTES de ler o corpo do JSON ──────────
-    // Rate limit (429) ou qualquer erro 4xx que não seja 404 → pendente
-    // (o JSON de erro da BrasilAPI não tem razao_social, o que causava rejeição indevida)
     if ($http_code === 429 || ($http_code >= 400 && $http_code !== 404)) {
         $pdo->prepare("UPDATE usuarios SET verificada = false, verificacao_status = 'pendente' WHERE id_usuario = ?")
             ->execute([$id_usuario]);
         return ['status' => 'pendente', 'mensagem' => 'Não foi possível validar o CNPJ no momento. Entraremos em contato em breve.'];
     }
 
-    // CNPJ não encontrado na Receita Federal → rejeita
     if ($http_code === 404 || empty($data['razao_social'])) {
         $pdo->prepare("UPDATE usuarios SET verificada = false, verificacao_status = 'rejeitada' WHERE id_usuario = ?")
             ->execute([$id_usuario]);
         return ['status' => 'rejeitada', 'mensagem' => 'CNPJ não encontrado na Receita Federal.'];
     }
 
-    // Erro inesperado da API (5xx etc.) → pendente
     if ($http_code !== 200) {
         $pdo->prepare("UPDATE usuarios SET verificada = false, verificacao_status = 'pendente' WHERE id_usuario = ?")
             ->execute([$id_usuario]);
         return ['status' => 'pendente', 'mensagem' => 'Não foi possível validar o CNPJ no momento. Entraremos em contato em breve.'];
     }
 
-    // ── CNPJ encontrado → verifica situação cadastral ──────────────────
-    // A BrasilAPI retorna o campo como "descricao_situacao_cadastral"
-    // Exemplos de valores: "ATIVA", "BAIXADA", "SUSPENSA", "INAPTA", "NULA"
-    $situacao = strtoupper(trim(
-        $data['descricao_situacao_cadastral'] ?? ''
-    ));
+    $situacao = strtoupper(trim($data['descricao_situacao_cadastral'] ?? ''));
 
     if ($situacao === 'ATIVA') {
-        // ✅ CNPJ válido e ativo
         $pdo->prepare("UPDATE usuarios SET verificada = true, verificacao_status = 'aprovada' WHERE id_usuario = ?")
             ->execute([$id_usuario]);
         return ['status' => 'aprovada', 'mensagem' => 'CNPJ verificado com sucesso! Sua ONG foi aprovada automaticamente.'];
     }
 
-    // ❌ CNPJ encontrado mas situação não é ATIVA (BAIXADA, SUSPENSA, INAPTA, NULA...)
     $pdo->prepare("UPDATE usuarios SET verificada = false, verificacao_status = 'rejeitada' WHERE id_usuario = ?")
         ->execute([$id_usuario]);
     return [
@@ -102,8 +88,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $email    = trim($_POST["email"]    ?? "");
     $senha    = $_POST["senha"]         ?? "";
     $role     = $_POST["role"]          ?? "doador";
+    $whatsapp = trim($_POST["whatsapp"] ?? "");
 
-    // Validações básicas
     if (empty($nome) || empty($cpf_cnpj) || empty($email) || empty($senha)) {
         $mensagem_erro = "Todos os campos obrigatórios devem ser preenchidos.";
         $tipo_erro = "error";
@@ -114,7 +100,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $senhaHash = password_hash($senha, PASSWORD_DEFAULT);
 
         try {
-            // ── 1. Inserir usuário ──────────────────────────────────────────
             $stmt = $pdo->prepare("
                 INSERT INTO usuarios (nome, email, senha, cpf_cnpj, tipo_usuario)
                 VALUES (:nome, :email, :senha, :cpf, :tipo)
@@ -129,23 +114,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             ]);
             $userId = $stmt->fetchColumn();
 
-            // ── 2. Inserção na tabela específica por tipo ───────────────────
             if ($role === "doador") {
-
                 $stmt = $pdo->prepare("INSERT INTO doadores (id_doador) VALUES (:id)");
                 $stmt->execute([":id" => $userId]);
 
                 $success_msg = urlencode("✅ Cadastro realizado com sucesso! Faça login para continuar.");
                 header("Location: login.php?msg=$success_msg&tipo=success");
                 exit;
-
             } else {
-
                 $endereco_completo = trim("$endereco, $numero - $bairro, $cidade - $uf");
-                $stmt = $pdo->prepare("INSERT INTO ongs (id_ong, endereco) VALUES (:id, :endereco)");
-                $stmt->execute([":id" => $userId, ":endereco" => $endereco_completo]);
+                $stmt = $pdo->prepare("INSERT INTO ongs (id_ong, endereco, whatsapp) VALUES (:id, :endereco, :whatsapp)");
+                $stmt->execute([":id" => $userId, ":endereco" => $endereco_completo, ":whatsapp" => $whatsapp]);
 
-                // ══ VERIFICAÇÃO AUTOMÁTICA DO CNPJ ══════════════════════════
                 $resultado = verificarCNPJAutomatico($pdo, $userId, $cpf_cnpj);
 
                 switch ($resultado['status']) {
@@ -157,7 +137,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         $msg  = urlencode("⚠️ Cadastro salvo, mas CNPJ não verificado: " . $resultado['mensagem']);
                         $tipo = "warning";
                         break;
-                    default: // pendente
+                    default:
                         $msg  = urlencode("⏳ Cadastro realizado! " . $resultado['mensagem']);
                         $tipo = "info";
                         break;
@@ -227,6 +207,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             line-height: 1.5;
         }
         #aviso-verificacao.show { display: block; }
+        
+        #campo-whatsapp {
+            display: none;
+        }
+        #campo-whatsapp.show {
+            display: block;
+        }
     </style>
 </head>
 
@@ -274,6 +261,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         <div class="field">
                             <input type="text" name="uf" id="uf" placeholder="UF" maxlength="2">
                         </div>
+                    </div>
+
+                    <div class="field" id="campo-whatsapp">
+                        <input type="tel" name="whatsapp" id="whatsapp" placeholder="WhatsApp (com DDD, apenas números)">
+                        <small style="font-size: 11px; color: #888; display: block; margin-top: 4px;">Número para contato dos doadores (opcional)</small>
                     </div>
 
                     <div class="field">
@@ -333,22 +325,22 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         });
         <?php endif; ?>
 
-        // ─── Role: atualizar texto e aviso ────────────────────────────────────────
         const doador     = document.getElementById("role-doador");
         const inst       = document.getElementById("role-inst");
         const roleText   = document.getElementById("role-text");
         const avisoVerif = document.getElementById("aviso-verificacao");
+        const campoWhats = document.getElementById("campo-whatsapp");
 
         function atualizarRole() {
             const isInst = inst.checked;
             roleText.textContent = isInst ? "Instituição" : "Doador";
             avisoVerif.classList.toggle("show", isInst);
+            campoWhats.classList.toggle("show", isInst);
         }
 
         doador.addEventListener("change", atualizarRole);
         inst.addEventListener("change", atualizarRole);
 
-        // ─── Validação + loading antes de enviar ──────────────────────────────────
         document.getElementById('cadastroForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -383,7 +375,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     return;
                 }
 
-                // Loading enquanto consulta a Receita Federal
                 swalCadastro.fire({
                     title: '🔍 Verificando CNPJ...',
                     html: 'Consultando a Receita Federal.<br><small>Isso pode levar alguns segundos.</small>',
@@ -394,7 +385,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 });
             }
 
-            // Loading no botão
             const btn = document.getElementById('btnCadastrar');
             btn.disabled = true;
             btn.textContent = '⏳ Cadastrando...';
@@ -403,7 +393,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             this.submit();
         });
 
-        // ─── Máscaras ─────────────────────────────────────────────────────────────
         document.getElementById('cpf_cnpj').addEventListener('input', function(e) {
             let v = e.target.value.replace(/\D/g, '');
             if (v.length <= 11) {
@@ -424,6 +413,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             v = v.length <= 10
                 ? v.replace(/^(\d{2})(\d)/, '($1) $2').replace(/(\d{4})(\d)/, '$1-$2')
                 : v.replace(/^(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2');
+            e.target.value = v;
+        });
+        
+        document.getElementById('whatsapp').addEventListener('input', function(e) {
+            let v = e.target.value.replace(/\D/g, '');
+            if (v.length <= 11) {
+                v = v.replace(/^(\d{2})(\d)/, '($1) $2')
+                     .replace(/(\d{5})(\d)/, '$1-$2');
+            } else {
+                v = v.replace(/^(\d{2})(\d)/, '($1) $2')
+                     .replace(/(\d{5})(\d{4})/, '$1-$2');
+            }
             e.target.value = v;
         });
 

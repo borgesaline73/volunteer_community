@@ -135,6 +135,8 @@ CREATE TABLE recuperacao_senha (
 ALTER TABLE doacoes ADD CONSTRAINT doacoes_status_check 
 CHECK (status IN ('AGENDADA', 'RECEBIDA', 'CANCELADA', 'PENDENTE_PIX'));
 
+ALTER TABLE ongs ADD COLUMN whatsapp VARCHAR(20) DEFAULT NULL;
+
 
 -- ===========================================
 -- 2. ÍNDICES

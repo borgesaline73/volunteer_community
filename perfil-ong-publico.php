@@ -18,10 +18,12 @@ $rotaPerfil = $tipo_visitante === "instituicao" ? "perfil-ong.php" : "perfil.php
 $rotaPlus = $tipo_visitante === "instituicao" ? "criar_post.php" : "agendar_coleta.php";
 
 try {
-    // BUSCA A ONG PELO ID
-    $stmt = $pdo->prepare("SELECT id_usuario, nome, email, cpf_cnpj, verificada, verificacao_status
-                           FROM usuarios
-                           WHERE id_usuario = ? AND tipo_usuario = 'instituicao'");
+    // BUSCA A ONG PELO ID (incluindo WhatsApp)
+    $stmt = $pdo->prepare("SELECT u.id_usuario, u.nome, u.email, u.cpf_cnpj, u.verificada, u.verificacao_status,
+                                  o.whatsapp, o.endereco, o.descricao
+                           FROM usuarios u
+                           LEFT JOIN ongs o ON u.id_usuario = o.id_ong
+                           WHERE u.id_usuario = ? AND u.tipo_usuario = 'instituicao'");
     $stmt->execute([$id_ong]);
     $ong = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -35,6 +37,9 @@ try {
     $cnpj_ong = $ong['cpf_cnpj'] ?? '';
     $verificada = $ong['verificada'] ?? false;
     $status_ver = $ong['verificacao_status'] ?? 'pendente';
+    $whatsapp_ong = $ong['whatsapp'] ?? '';
+    $endereco_ong = $ong['endereco'] ?? '';
+    $descricao_ong = $ong['descricao'] ?? '';
 
     // BUSCA POSTS DA ONG
     $stmt_posts = $pdo->prepare("SELECT * FROM posts WHERE id_usuario = ? ORDER BY data_post DESC");
@@ -231,6 +236,12 @@ body {
     min-width: 100px;
 }
 
+.info-item a {
+    color: #25D366;
+    text-decoration: none;
+    font-weight: 600;
+}
+
 .verified-badge {
     display: inline-flex;
     align-items: center;
@@ -272,6 +283,27 @@ body {
 .btn-doar:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(244,130,47,0.3);
+}
+
+.btn-whatsapp {
+    background: #25D366;
+    color: white;
+    border: none;
+    border-radius: 50px;
+    padding: 12px 24px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 8px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-whatsapp:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(37,211,102,0.3);
 }
 
 .tab-menu {
@@ -629,6 +661,20 @@ body {
                 <div class="info-item"><strong>CNPJ:</strong> <?= htmlspecialchars($cnpj_ong) ?></div>
             <?php endif; ?>
             
+            <?php if (!empty($endereco_ong)): ?>
+                <div class="info-item"><strong>Endereço:</strong> <?= htmlspecialchars($endereco_ong) ?></div>
+            <?php endif; ?>
+            
+            <?php if (!empty($whatsapp_ong)): ?>
+                <div class="info-item">
+                    <strong>WhatsApp:</strong> 
+                    <a href="https://wa.me/55<?= preg_replace('/\D/', '', $whatsapp_ong) ?>?text=Olá! Vi sua ONG no Volunteer Community e gostaria de doar." 
+                       target="_blank">
+                        <?= htmlspecialchars($whatsapp_ong) ?> 💬
+                    </a>
+                </div>
+            <?php endif; ?>
+            
             <div class="info-item"><strong>Tipo:</strong> Instituição</div>
 
             <?php if ($verificada && $status_ver === 'aprovada'): ?>
@@ -641,6 +687,16 @@ body {
                 <button class="btn-doar" onclick="confirmarDoacao(<?= $id_ong ?>, '<?= htmlspecialchars(addslashes($nome_ong)) ?>')">
                     💛 Quero Doar
                 </button>
+                
+                <?php if (!empty($whatsapp_ong)): ?>
+                    <a href="https://wa.me/55<?= preg_replace('/\D/', '', $whatsapp_ong) ?>?text=Olá! Gostaria de saber mais sobre como ajudar a <?= urlencode($nome_ong) ?>" 
+                       target="_blank" 
+                       style="text-decoration: none;">
+                        <button class="btn-whatsapp">
+                            💬 Falar com a ONG no WhatsApp
+                        </button>
+                    </a>
+                <?php endif; ?>
             <?php endif; ?>
         </div>
 
@@ -758,7 +814,6 @@ body {
 <script>
 document.body.style.overflow = 'hidden';
 
-// Referência ao elemento .phone para confinar os modais
 const phoneEl = document.getElementById('phoneWrapper');
 
 const swalOng = Swal.mixin({
@@ -770,7 +825,6 @@ const swalOng = Swal.mixin({
     }
 });
 
-// Função para mostrar info de verificação
 function mostrarInfoVerificacao() {
     swalOng.fire({
         title: '✅ ONG Verificada',
@@ -792,7 +846,6 @@ function mostrarInfoVerificacao() {
     });
 }
 
-// Função para confirmar doação
 async function confirmarDoacao(idOng, nomeOng) {
     const result = await swalOng.fire({
         title: '💛 Fazer uma doação?',

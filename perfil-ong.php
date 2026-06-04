@@ -23,15 +23,17 @@ if (isset($_GET['msg']) && isset($_GET['tipo'])) {
     $tipo_flash = $_GET['tipo'];
 }
 
-// Buscar chave PIX da ONG
+// Buscar chave PIX e WhatsApp da ONG
 $chave_pix = null;
+$whatsapp = null;
 try {
-    $stmt = $pdo->prepare("SELECT chave_pix FROM ongs WHERE id_ong = ?");
+    $stmt = $pdo->prepare("SELECT chave_pix, whatsapp FROM ongs WHERE id_ong = ?");
     $stmt->execute([$id_ong]);
     $result    = $stmt->fetch(PDO::FETCH_ASSOC);
     $chave_pix = $result['chave_pix'] ?? null;
+    $whatsapp  = $result['whatsapp'] ?? null;
 } catch (PDOException $e) {
-    error_log("Erro ao buscar chave PIX: " . $e->getMessage());
+    error_log("Erro ao buscar chave PIX/WhatsApp: " . $e->getMessage());
 }
 
 // ===== BUSCAR DADOS DO USUÁRIO =====
@@ -142,11 +144,6 @@ $rotaPerfil = "perfil-ong.php";
     width: 88% !important; max-width: 340px !important;
     border-radius: 16px !important; font-family: 'Poppins', sans-serif !important;
   }
-  .swal2-container.swal-inside-phone.swal2-top-end,
-  .swal2-container.swal-inside-phone.swal2-top-right {
-    top: 8px !important; right: 8px !important;
-    width: auto !important; height: auto !important;
-  }
 
   .verified-section {
     margin: 10px 0;
@@ -205,6 +202,17 @@ $rotaPerfil = "perfil-ong.php";
   }
   .btn-pix:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(102,126,234,0.3); }
 
+  .btn-whatsapp {
+    background: #25D366; color: white; border: none; border-radius: 12px;
+    padding: 12px 20px; margin-top: 10px; cursor: pointer;
+    font-weight: 600; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    gap: 10px; width: 100%;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    text-decoration: none;
+  }
+  .btn-whatsapp:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(37,211,102,0.3); }
+
   .pix-status { font-size: 12px; margin-top: 10px; padding: 8px 12px; border-radius: 8px; text-align: center; }
   .pix-status.cadastrada     { background: #d4edda; color: #155724; }
   .pix-status.nao-cadastrada { background: #fff3cd; color: #856404; }
@@ -236,6 +244,166 @@ $rotaPerfil = "perfil-ong.php";
     font-weight: 600;
     margin-top: 8px;
   }
+  
+  .info-item a {
+    color: #25D366;
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  /* Estilos do carrossel de destino */
+  .destino-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 20px 0 10px;
+  }
+  
+  .destino-carousel {
+    flex: 1;
+    overflow: hidden;
+    border-radius: 20px;
+  }
+  
+  .destino-slide {
+    display: none;
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    overflow: hidden;
+  }
+  
+  .destino-slide.active {
+    display: block;
+  }
+  
+  .destino-img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+  }
+  
+  .destino-body {
+    padding: 16px;
+  }
+  
+  .destino-titulo {
+    font-weight: 700;
+    font-size: 16px;
+    color: #2b2b2b;
+    margin-bottom: 6px;
+  }
+  
+  .destino-data {
+    font-size: 11px;
+    color: #999;
+    margin-bottom: 10px;
+  }
+  
+  .destino-descricao {
+    font-size: 13px;
+    color: #555;
+    line-height: 1.5;
+  }
+  
+  .destino-nav {
+    background: #fff;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  
+  .destino-nav:hover {
+    background: #f4822f;
+    border-color: #f4822f;
+    color: white;
+  }
+  
+  .destino-nav:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  
+  .destino-dots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin: 12px 0;
+  }
+  
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ccc;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .dot.active {
+    background: #f4822f;
+    width: 20px;
+    border-radius: 10px;
+  }
+  
+  .destino-counter {
+    text-align: center;
+    font-size: 12px;
+    color: #999;
+    margin-top: 5px;
+  }
+  
+  .destino-acoes {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+    justify-content: center;
+  }
+  
+  .btn-editar-destino {
+    flex: 1;
+    text-align: center;
+    padding: 7px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    background: #e8f4fd;
+    color: #2980b9;
+    font-family: 'Poppins', sans-serif;
+  }
+  
+  .btn-excluir-destino {
+    flex: 1;
+    padding: 7px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    background: #fdecea;
+    color: #c0392b;
+    font-family: 'Poppins', sans-serif;
+  }
+  
+  .btn-editar-destino:hover {
+    background: #d4eaf7;
+    transform: translateY(-1px);
+  }
+  
+  .btn-excluir-destino:hover {
+    background: #fce4e1;
+    transform: translateY(-1px);
+  }
 </style>
 </head>
 <body>
@@ -257,6 +425,14 @@ $rotaPerfil = "perfil-ong.php";
       <div class="info-item"><strong>Email:</strong> <?= htmlspecialchars($email) ?></div>
       <?php if (!empty($cnpj)): ?>
         <div class="info-item"><strong>CNPJ:</strong> <?= htmlspecialchars($cnpj) ?></div>
+      <?php endif; ?>
+      <?php if (!empty($whatsapp)): ?>
+        <div class="info-item">
+          <strong>WhatsApp:</strong> 
+          <a href="https://wa.me/55<?= preg_replace('/\D/', '', $whatsapp) ?>" target="_blank">
+            <?= htmlspecialchars($whatsapp) ?> 💬
+          </a>
+        </div>
       <?php endif; ?>
       <div class="info-item"><strong>Tipo:</strong> Instituição</div>
 
@@ -286,6 +462,19 @@ $rotaPerfil = "perfil-ong.php";
       <button class="btn-pix" onclick="window.location.href='gerenciar_pix.php'">
         💜 Gerenciar Chave PIX
       </button>
+      
+      <?php if (empty($whatsapp)): ?>
+        <button class="btn-whatsapp" onclick="window.location.href='editar_whatsapp.php'">
+          💬 Cadastrar WhatsApp
+        </button>
+      <?php else: ?>
+        <a href="https://wa.me/55<?= preg_replace('/\D/', '', $whatsapp) ?>?text=Olá! Sou doador do Volunteer Community e gostaria de mais informações." 
+           target="_blank" 
+           class="btn-whatsapp" 
+           style="display: block; text-align: center;">
+          💬 Testar Meu WhatsApp
+        </a>
+      <?php endif; ?>
     </div>
 
     <!-- MENU DE ABAS -->
@@ -379,8 +568,9 @@ $rotaPerfil = "perfil-ong.php";
     <div class="tab-content" id="destino-tab">
       <div class="section">
         <span>📢 Para onde vai sua doação</span>
-        <button class="btn-add-item" onclick="window.location='criar_destino.php'">+ Publicar</button>
+        <button class="btn-add-item" onclick="window.location.href='criar_destino.php'">+ Publicar</button>
       </div>
+      
       <?php if (empty($destinos)): ?>
         <div class="empty">
           <strong>💛 Nenhuma publicação ainda</strong>
@@ -388,27 +578,30 @@ $rotaPerfil = "perfil-ong.php";
         </div>
       <?php else: ?>
         <div class="destino-wrapper">
-          <button class="destino-nav" id="btnPrev" onclick="navegarDestino(-1)">&#8592;</button>
+          <button class="destino-nav" id="btnPrevDestino" onclick="navegarDestino(-1)">&#8592;</button>
           <div class="destino-carousel" id="destinoCarousel">
-            <?php foreach ($destinos as $i => $d): ?>
-              <div class="destino-slide <?= $i === 0 ? 'active' : '' ?>" data-index="<?= $i ?>">
-                <?php if (!empty($d['imagem'])): ?>
-                  <img src="uploads/<?= htmlspecialchars($d['imagem']) ?>" class="destino-img"
-                       alt="<?= htmlspecialchars($d['titulo']) ?>" onerror="this.style.display='none'">
+            <?php foreach ($destinos as $indice => $destino_atual): ?>
+              <div class="destino-slide <?= $indice === 0 ? 'active' : '' ?>" data-indice="<?= $indice ?>">
+                <?php if (!empty($destino_atual['imagem'])): ?>
+                  <img src="uploads/<?= htmlspecialchars($destino_atual['imagem']) ?>" class="destino-img" alt="<?= htmlspecialchars($destino_atual['titulo']) ?>">
                 <?php endif; ?>
                 <div class="destino-body">
-                  <div class="destino-titulo"><?= htmlspecialchars($d['titulo']) ?></div>
-                  <div class="destino-data"><?= date('d/m/Y', strtotime($d['criado_em'])) ?></div>
-                  <div class="destino-descricao"><?= nl2br(htmlspecialchars($d['descricao'])) ?></div>
+                  <div class="destino-titulo"><?= htmlspecialchars($destino_atual['titulo']) ?></div>
+                  <div class="destino-data"><?= date('d/m/Y', strtotime($destino_atual['criado_em'])) ?></div>
+                  <div class="destino-descricao"><?= nl2br(htmlspecialchars($destino_atual['descricao'])) ?></div>
+                  <div class="destino-acoes">
+                    <a href="criar_destino.php?id=<?= $destino_atual['id_destino'] ?>" class="btn-editar-destino">✏️ Editar</a>
+                    <button class="btn-excluir-destino" onclick="excluirDestino(<?= $destino_atual['id_destino'] ?>)">🗑️ Excluir</button>
+                  </div>
                 </div>
               </div>
             <?php endforeach; ?>
           </div>
-          <button class="destino-nav" id="btnNext" onclick="navegarDestino(1)">&#8594;</button>
+          <button class="destino-nav" id="btnNextDestino" onclick="navegarDestino(1)">&#8594;</button>
         </div>
         <div class="destino-dots" id="destinoDots">
-          <?php foreach ($destinos as $i => $d): ?>
-            <span class="dot <?= $i === 0 ? 'active' : '' ?>" onclick="irParaDestino(<?= $i ?>)"></span>
+          <?php foreach ($destinos as $indice => $destino_atual): ?>
+            <span class="dot <?= $indice === 0 ? 'active' : '' ?>" onclick="irParaDestino(<?= $indice ?>)"></span>
           <?php endforeach; ?>
         </div>
         <div class="destino-counter">
@@ -574,6 +767,16 @@ document.addEventListener('DOMContentLoaded', function () {
             if (target) target.classList.add('active');
         });
     });
+    
+    // Inicializar carrossel de destino
+    const slides = document.querySelectorAll('.destino-slide');
+    if (slides.length > 0) {
+        const prevBtn = document.getElementById('btnPrevDestino');
+        const nextBtn = document.getElementById('btnNextDestino');
+        if (prevBtn) prevBtn.disabled = true;
+        if (nextBtn) nextBtn.disabled = slides.length <= 1;
+        document.getElementById('destinoTotal').textContent = slides.length;
+    }
 });
 
 async function atualizarNotificacoes() {
@@ -698,43 +901,70 @@ async function removerItem(idItem, tipo) {
     }
 }
 
+// Variáveis do carrossel de destino
 let destinoAtual = 0;
 
 function navegarDestino(direcao) {
     const slides = document.querySelectorAll('.destino-slide');
-    if (!slides.length) return;
+    if (slides.length === 0) return;
+    
     slides[destinoAtual].classList.remove('active');
-    document.querySelectorAll('.dot')[destinoAtual]?.classList.remove('active');
-    destinoAtual = Math.max(0, Math.min(destinoAtual + direcao, slides.length - 1));
+    const dots = document.querySelectorAll('#destinoDots .dot');
+    if (dots[destinoAtual]) dots[destinoAtual].classList.remove('active');
+    
+    destinoAtual += direcao;
+    if (destinoAtual < 0) destinoAtual = 0;
+    if (destinoAtual >= slides.length) destinoAtual = slides.length - 1;
+    
     slides[destinoAtual].classList.add('active');
-    document.querySelectorAll('.dot')[destinoAtual]?.classList.add('active');
+    if (dots[destinoAtual]) dots[destinoAtual].classList.add('active');
+    
     document.getElementById('destinoAtual').textContent = destinoAtual + 1;
-    document.getElementById('btnPrev').disabled = destinoAtual === 0;
-    document.getElementById('btnNext').disabled = destinoAtual === slides.length - 1;
+    document.getElementById('destinoTotal').textContent = slides.length;
+    
+    const prevBtn = document.getElementById('btnPrevDestino');
+    const nextBtn = document.getElementById('btnNextDestino');
+    if (prevBtn) prevBtn.disabled = destinoAtual === 0;
+    if (nextBtn) nextBtn.disabled = destinoAtual === slides.length - 1;
 }
 
-function irParaDestino(index) {
+function irParaDestino(indice) {
     const slides = document.querySelectorAll('.destino-slide');
-    if (!slides.length) return;
+    if (slides.length === 0) return;
+    
     slides[destinoAtual].classList.remove('active');
-    document.querySelectorAll('.dot')[destinoAtual]?.classList.remove('active');
-    destinoAtual = index;
+    const dots = document.querySelectorAll('#destinoDots .dot');
+    if (dots[destinoAtual]) dots[destinoAtual].classList.remove('active');
+    
+    destinoAtual = indice;
+    
     slides[destinoAtual].classList.add('active');
-    document.querySelectorAll('.dot')[destinoAtual]?.classList.add('active');
+    if (dots[destinoAtual]) dots[destinoAtual].classList.add('active');
+    
     document.getElementById('destinoAtual').textContent = destinoAtual + 1;
-    document.getElementById('btnPrev').disabled = destinoAtual === 0;
-    document.getElementById('btnNext').disabled = destinoAtual === slides.length - 1;
+    document.getElementById('destinoTotal').textContent = slides.length;
+    
+    const prevBtn = document.getElementById('btnPrevDestino');
+    const nextBtn = document.getElementById('btnNextDestino');
+    if (prevBtn) prevBtn.disabled = destinoAtual === 0;
+    if (nextBtn) nextBtn.disabled = destinoAtual === slides.length - 1;
 }
 
-document.addEventListener('DOMContentLoaded', function () {
-    const slides = document.querySelectorAll('.destino-slide');
-    if (slides.length) {
-        const prev = document.getElementById('btnPrev');
-        const next = document.getElementById('btnNext');
-        if (prev) prev.disabled = true;
-        if (next) next.disabled = slides.length <= 1;
+async function excluirDestino(id) {
+    const result = await swalONG.fire({
+        title: '🗑️ Excluir publicação?',
+        text: 'Esta ação não pode ser desfeita.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: '🗑️ Excluir',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#dc3545'
+    });
+    
+    if (result.isConfirmed) {
+        window.location.href = 'excluir_destino.php?id=' + id;
     }
-});
+}
 </script>
 </body>
 </html>

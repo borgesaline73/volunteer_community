@@ -33,10 +33,10 @@ try {
     $categoria_exists = $stmt_check->fetch(PDO::FETCH_ASSOC);
 
     $sql_ongs = $categoria_exists
-        ? "SELECT u.id_usuario, u.nome, u.email, u.cpf_cnpj, o.endereco, o.descricao, o.categoria, o.chave_pix 
+        ? "SELECT u.id_usuario, u.nome, u.email, u.cpf_cnpj, o.endereco, o.descricao, o.categoria, o.chave_pix, o.whatsapp 
            FROM usuarios u LEFT JOIN ongs o ON u.id_usuario = o.id_ong 
            WHERE u.tipo_usuario = 'instituicao' ORDER BY u.nome ASC"
-        : "SELECT u.id_usuario, u.nome, u.email, u.cpf_cnpj, o.endereco, o.descricao, o.chave_pix 
+        : "SELECT u.id_usuario, u.nome, u.email, u.cpf_cnpj, o.endereco, o.descricao, o.chave_pix, o.whatsapp 
            FROM usuarios u LEFT JOIN ongs o ON u.id_usuario = o.id_ong 
            WHERE u.tipo_usuario = 'instituicao' ORDER BY u.nome ASC";
 
@@ -57,7 +57,7 @@ try {
 }
 
 function buscarOng($pdo, $id) {
-    $stmt = $pdo->prepare("SELECT u.nome, u.email, u.cpf_cnpj, o.endereco, o.id_ong, o.descricao, o.chave_pix
+    $stmt = $pdo->prepare("SELECT u.nome, u.email, u.cpf_cnpj, o.endereco, o.id_ong, o.descricao, o.chave_pix, o.whatsapp
                            FROM usuarios u LEFT JOIN ongs o ON u.id_usuario = o.id_ong 
                            WHERE u.id_usuario = ? AND u.tipo_usuario = 'instituicao'");
     $stmt->execute([$id]);
@@ -163,10 +163,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $pdo->commit();
 
-                $success_msg = urlencode($is_pix
-                    ? "💜 Doação PIX registrada! A ONG será notificada assim que confirmar o recebimento."
-                    : "✅ Agendamento realizado com sucesso! A ONG foi notificada.");
-                header("Location: feed.php?msg=$success_msg&tipo=success");
+                // Redirecionar com parâmetro de sucesso
+                $tipo_sucesso = $is_pix ? 'pix' : 'normal';
+                header("Location: agendar_coleta.php?sucesso=1&ong=" . $ong_escolhida . "&tipo=" . $tipo_sucesso);
                 exit;
 
             } catch (PDOException $e) {
@@ -188,6 +187,7 @@ if (!$ong_selecionada && !empty($ong_escolhida)) {
 
 $mostrar_formulario = !empty($ong_escolhida);
 $ong_tem_pix        = !empty($ong_selecionada['chave_pix']);
+$whatsapp_ong       = $ong_selecionada['whatsapp'] ?? '';
 
 $meses = [
     1=>'Janeiro',2=>'Fevereiro',3=>'Março',4=>'Abril',
@@ -306,6 +306,32 @@ $mes_atual = (int)date('m');
   /* Esconde campos desnecessários no modo PIX */
   .hide-on-pix { transition: opacity 0.2s; }
   .pix-mode .hide-on-pix { display: none; }
+
+  /* Tela de sucesso */
+  .success-screen {
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    border-radius: 20px;
+    padding: 24px 20px;
+    margin-bottom: 20px;
+    text-align: center;
+    animation: fadeIn 0.5s ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  /* WhatsApp link nos cards */
+  .whatsapp-link {
+    margin-top: 8px;
+    font-size: 11px;
+    color: #25D366;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    text-decoration: none;
+  }
 </style>
 </head>
 <body>
@@ -318,6 +344,61 @@ $mes_atual = (int)date('m');
   </div>
 
   <div class="main-content">
+
+    <!-- TELA DE SUCESSO COM WHATSAPP -->
+    <?php if (isset($_GET['sucesso']) && $_GET['sucesso'] == 1 && !empty($_GET['ong'])): 
+        $ong_id_sucesso = (int)$_GET['ong'];
+        $tipo_doacao_sucesso = $_GET['tipo'] ?? 'normal';
+        
+        $whatsapp_sucesso = '';
+        $nome_ong_sucesso = '';
+        try {
+            $stmt_sucesso = $pdo->prepare("
+                SELECT u.nome, o.whatsapp 
+                FROM usuarios u 
+                LEFT JOIN ongs o ON u.id_usuario = o.id_ong 
+                WHERE u.id_usuario = ? AND u.tipo_usuario = 'instituicao'
+            ");
+            $stmt_sucesso->execute([$ong_id_sucesso]);
+            $ong_data = $stmt_sucesso->fetch(PDO::FETCH_ASSOC);
+            $nome_ong_sucesso = $ong_data['nome'] ?? 'ONG';
+            $whatsapp_sucesso = $ong_data['whatsapp'] ?? '';
+        } catch (PDOException $e) {}
+        
+        $mensagem_whats = urlencode("Olá! Acabei de agendar uma doação " . ($tipo_doacao_sucesso == 'pix' ? 'via PIX' : 'de itens') . " para sua ONG pelo Volunteer Community. Gostaria de confirmar os detalhes.");
+    ?>
+    <div class="success-screen">
+        <div style="font-size: 48px; margin-bottom: 12px;">🎉</div>
+        <h3 style="color: #155724; margin-bottom: 8px;">Agendamento Realizado!</h3>
+        <p style="color: #155724; font-size: 13px; margin-bottom: 20px;">
+            <?= $tipo_doacao_sucesso == 'pix' 
+                ? '💜 Sua doação PIX foi registrada! A ONG será notificada assim que confirmar o recebimento.' 
+                : '✅ Sua coleta foi agendada com sucesso! A ONG já foi notificada.' 
+            ?>
+        </p>
+        
+        <?php if (!empty($whatsapp_sucesso)): ?>
+            <a href="https://wa.me/55<?= preg_replace('/\D/', '', $whatsapp_sucesso) ?>?text=<?= $mensagem_whats ?>" 
+               target="_blank" 
+               style="text-decoration: none; display: inline-block; margin-top: 8px;">
+                <button style="background: #25D366; color: white; border: none; border-radius: 50px; padding: 12px 28px; font-weight: 700; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+                    💬 Falar com <?= htmlspecialchars($nome_ong_sucesso) ?> no WhatsApp
+                </button>
+            </a>
+            <button onclick="window.location.href='feed.php'" style="background: transparent; border: 1.5px solid #155724; color: #155724; border-radius: 50px; padding: 10px 24px; font-size: 12px; margin-top: 12px; cursor: pointer; display: inline-block; margin-left: 10px;">
+                Voltar ao Feed
+            </button>
+        <?php else: ?>
+            <button onclick="window.location.href='feed.php'" style="background: #f4822f; color: white; border: none; border-radius: 50px; padding: 12px 28px; font-weight: 700; font-size: 14px; cursor: pointer;">
+                ✅ Voltar ao Feed
+            </button>
+        <?php endif; ?>
+    </div>
+    <?php 
+        // Remover parâmetros da URL após exibir
+        echo '<script>setTimeout(() => { window.history.replaceState({}, document.title, window.location.pathname); }, 100);</script>';
+        endif; 
+    ?>
 
     <?php if (!empty($mensagem_sucesso)): ?>
       <div class="success-message" id="successMessage"><?= $mensagem_sucesso ?></div>
@@ -378,6 +459,13 @@ $mes_atual = (int)date('m');
                   <?php if (!empty($ong['chave_pix'])): ?>
                     <div style="font-size:10px;color:#667eea;margin-top:5px;">💜 Aceita PIX</div>
                   <?php endif; ?>
+                  <?php if (!empty($ong['whatsapp'])): ?>
+                    <a href="https://wa.me/55<?= preg_replace('/\D/', '', $ong['whatsapp']) ?>?text=Olá! Vi sua ONG no Volunteer Community e gostaria de saber mais sobre como doar." 
+                       target="_blank" 
+                       class="whatsapp-link">
+                        💬 WhatsApp
+                    </a>
+                  <?php endif; ?>
                   <input type="radio" name="ong_escolhida" value="<?= $ong['id_usuario'] ?>"
                          <?= $ong_escolhida == $ong['id_usuario'] ? 'checked' : '' ?>
                          style="display:none;">
@@ -402,6 +490,15 @@ $mes_atual = (int)date('m');
       <div><strong>ONG selecionada:</strong> <?= htmlspecialchars($ong_selecionada['nome']) ?></div>
       <?php if (!empty($ong_selecionada['email'])): ?>
         <div><strong>Email:</strong> <?= htmlspecialchars($ong_selecionada['email']) ?></div>
+      <?php endif; ?>
+      <?php if (!empty($whatsapp_ong)): ?>
+        <div><strong>WhatsApp:</strong> 
+          <a href="https://wa.me/55<?= preg_replace('/\D/', '', $whatsapp_ong) ?>?text=Olá! Gostaria de informações sobre como doar para <?= urlencode($ong_selecionada['nome']) ?>" 
+             target="_blank" 
+             style="color: #25D366; text-decoration: none; font-weight: 600;">
+            <?= htmlspecialchars($whatsapp_ong) ?> 💬
+          </a>
+        </div>
       <?php endif; ?>
       <?php if (!empty($titulo_ong)): ?>
         <div><strong>Campanha:</strong> <?= htmlspecialchars($titulo_ong) ?></div>
@@ -595,7 +692,6 @@ async function confirmarPix() {
         btn.disabled = true;
         btn.textContent = '⏳ Registrando...';
 
-        // Garante campos hidden corretos
         document.getElementById('tipo_doacao').value = 'DINHEIRO';
 
         const s = document.createElement('input');
@@ -621,11 +717,9 @@ function updateTipoDisplay() {
     const valCont       = document.getElementById('valorDoacaoContainer');
 
     if (selectedTipo === 'DINHEIRO' && ONG_TEM_PIX) {
-        // Modo PIX: mostra painel PIX, esconde campos de coleta
         if (pixPanel) pixPanel.classList.add('visible');
         document.querySelectorAll('.hide-on-pix').forEach(el => el.style.display = 'none');
     } else {
-        // Modo normal
         if (pixPanel) pixPanel.classList.remove('visible');
         document.querySelectorAll('.hide-on-pix').forEach(el => el.style.display = '');
         if (descCont) descCont.style.display = selectedTipo === 'ITEM'     ? 'block' : 'none';
@@ -758,17 +852,6 @@ async function confirmarAgendamento() {
     if (result.isConfirmed) {
         const form = document.getElementById('formAgendamento');
         document.getElementById('btnAgendar').disabled = true;
-
-        ['data_coleta','horario','local_coleta','tipo_doacao',
-         tipo==='ITEM'?'descricao_item':'valor_doacao'].forEach(n => {
-            const existing = form.querySelector(`[name="${n}"]`);
-            if (!existing) {
-                const inp = document.createElement('input');
-                inp.type = 'hidden'; inp.name = n;
-                inp.value = n==='data_coleta'?data:n==='horario'?horario:n==='local_coleta'?local:n==='tipo_doacao'?tipo:tipo==='ITEM'?desc:valor;
-                form.appendChild(inp);
-            }
-        });
 
         const s = document.createElement('input');
         s.type = 'hidden'; s.name = 'agendar'; s.value = 'agendar';
