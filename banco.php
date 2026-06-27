@@ -15,7 +15,6 @@ try {
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES => false
     ]);
-    echo "Conectado com sucesso!";
 } catch (PDOException $e) {
     error_log("Erro na conexão com o banco: " . $e->getMessage());
     die("Erro na conexão com o banco de dados. Por favor, tente novamente mais tarde.");
