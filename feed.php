@@ -174,7 +174,7 @@ if ($tipoUsuario === "instituicao") {
               <?php endif; ?>
 
               <?php if (!empty($post['imagem'])): ?>
-                <img src="uploads/<?= $post['imagem'] ?>" 
+                <img src="/uploads/<?= $post['imagem'] ?>"
                      class="post-image" 
                      alt="<?= htmlspecialchars($post['titulo']) ?>"
                      onerror="this.style.display='none'">
