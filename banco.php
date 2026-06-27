@@ -6,14 +6,8 @@ $dbname = 'railway';
 $user = 'postgres';
 $password = 'VkAcDmSLFrIVucYNadgxPezOYaaFZIZr';
 
-// Se as variáveis do Railway estiverem disponíveis, use-as
-if (getenv('PGHOST')) {
-    $host = getenv('PGHOST');
-    $port = getenv('PGPORT');
-    $dbname = getenv('PGDATABASE');
-    $user = getenv('PGUSER');
-    $password = getenv('PGPASSWORD');
-}
+// NÃO USAR AS VARIÁVEIS INTERNAS - usar apenas o host público fixo
+// Removido o if que sobrescrevia as variáveis
 
 try {
     $pdo = new PDO("pgsql:host=$host;port=$port;dbname=$dbname", $user, $password, [
