@@ -218,7 +218,7 @@ body {
 .feed-container {
   flex: 1;
   overflow-y: auto;
-  padding: 12px 16px 20px;
+  padding: 12px 16px calc(74px + 20px);
 }
 
 .carousel-wrapper {
