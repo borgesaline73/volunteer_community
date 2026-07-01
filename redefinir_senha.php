@@ -105,7 +105,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && $valido && $registro) {
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 
   <style>
-    /* Confinar SweetAlert dentro do .login-screen */
+    /* Deixa o  SweetAlert dentro do .login-screen */
     .login-screen {
       position: relative;
       overflow: hidden;

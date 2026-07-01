@@ -616,7 +616,7 @@ $mes_atual = (int)date('m');
           <button type="button" class="btn-primary" id="btnAgendar" disabled onclick="confirmarAgendamento()">✅ Agendar</button>
           <button type="button" class="btn-secondary" onclick="window.location.href='agendar_coleta.php'">🔄 Trocar ONG</button>
         </div>
-      </div><!-- /camposNormais -->
+      </div>
 
     </form>
     <?php endif; ?>
@@ -879,7 +879,7 @@ function selecionarOng(card) {
     if (btn) btn.disabled = false;
 }
 
-// ── Init ──────────────────────────────────────────────────────────────────────
+
 document.addEventListener('DOMContentLoaded', function () {
     updateTipoDisplay();
     updateCalendar();

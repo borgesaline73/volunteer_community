@@ -1,4 +1,4 @@
-<?php
+<?php //Página para teste lembrar de tirar após finalizar todo o projeto
 session_start();
 require "banco.php";
 

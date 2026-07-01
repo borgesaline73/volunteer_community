@@ -55,8 +55,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $pdo->beginTransaction();
 
-        // Doações em dinheiro (PIX) também precisam ter o status_pagamento
-        // atualizado para refletir que o valor já foi confirmado pela ONG.
         if ($doacao['tipo'] === 'DINHEIRO') {
             $stmt_update = $pdo->prepare("UPDATE doacoes 
                                           SET status = 'RECEBIDA', 
@@ -98,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 
   <style>
-    /* Confinar SweetAlert dentro do .phone */
+    /* Css para deixar o SweetAlert dentro do .phone */
     .phone {
       position: relative;
       overflow: hidden;

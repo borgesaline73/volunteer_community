@@ -13,9 +13,7 @@ $id_ong = $_SESSION["usuario_id"];
 $mensagem = '';
 $tipo_msg = '';
 
-// ============================================
-// BUSCA CORRIGIDA - Forçando conversão para INTEGER
-// ============================================
+
 try {
     $id_ong_int = intval($id_ong);
 
@@ -209,8 +207,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['atualizar_pix']) && i
 
     <?php endif; ?>
 
-  </div><!-- /main-content -->
-
+  </div>
   <!-- MENU INFERIOR FIXO -->
   <div class="bottom">
     <a href="feed.php" class="menu-item">
@@ -236,7 +233,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['atualizar_pix']) && i
     </a>
   </div>
 
-</div><!-- /phone -->
+</div>
 
 </body>
 </html>

@@ -17,7 +17,7 @@ header('Content-Type: application/json');
 try {
     if ($marcar_todas) {
         // Marcar TODAS as coletas como visualizadas
-        // Primeiro, identificar todas as coletas da ONG (hoje e próximos dias)
+        // Primeiro, identifica todas as coletas da ONG (hoje e próximos dias)
         $sql_coletas = "SELECT d.id_doacao FROM doacoes d 
                        JOIN coletas c ON d.id_doacao = c.id_doacao
                        WHERE d.id_ong = ? 
@@ -42,12 +42,12 @@ try {
         echo json_encode(['success' => true, 'message' => 'Todas as coletas marcadas como visualizadas']);
         
     } elseif ($id_doacao) {
-        // Extrair ID da doação se for um ID de notificação
+        // Extrai o ID da doação se for um ID de notificação
         if (strpos($id_doacao, 'coleta_') === 0) {
             $id_doacao = str_replace('coleta_', '', $id_doacao);
         }
         
-        // Verificar se a doação pertence à ONG
+        // Verifica se a doação pertence à ONG
         $sql_verificar = "SELECT id_doacao FROM doacoes WHERE id_ong = ? AND id_doacao = ?";
         $stmt_verificar = $pdo->prepare($sql_verificar);
         $stmt_verificar->execute([$id_ong, $id_doacao]);
@@ -57,7 +57,7 @@ try {
             exit;
         }
         
-        // Marcar uma coleta específica como visualizada
+        // Marca uma coleta específica como visualizada
         $sql = "INSERT INTO coletas_visualizadas (id_ong, id_doacao, visualizada) 
                 VALUES (?, ?, TRUE)
                 ON CONFLICT (id_ong, id_doacao) 

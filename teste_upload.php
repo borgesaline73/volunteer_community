@@ -1,4 +1,4 @@
-<?php
+<?php //Página para teste lembrar de tirar após finalizar todo o projeto
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['imagem'])) {
     echo "<h3>Resultado do upload:</h3>";
     echo "<pre>";

@@ -349,7 +349,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 1000);
     }
     
-    // Badge controlado 100% pelo JS — sem valor PHP
+
     atualizarBadgeNotificacoes();
 });
 

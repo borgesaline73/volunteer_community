@@ -66,7 +66,7 @@ $rejeitadas = count(array_filter($ongs, fn($o) => $o['verificacao_status'] === '
       ONGs pendentes tiveram falha de conexão com a API — use "Re-verificar" para tentar novamente.
     </div>
 
-    <!-- STATS -->
+    <!-- STATUS -->
     <div class="stats-row">
       <div class="stat-card pendente">
         <div class="stat-num"><?= $pendentes ?></div>
@@ -126,7 +126,7 @@ $rejeitadas = count(array_filter($ongs, fn($o) => $o['verificacao_status'] === '
               </button>
             <?php endif; ?>
 
-            <!-- Re-verificar: só aparece para pendentes (falha de conexão no cadastro) -->
+            <!-- Re-verificar: só aparece para pendentes (quando houver falha de conexão no cadastro) -->
             <?php if ($status === 'pendente' && !empty($cnpj) && strlen($cnpj) === 14): ?>
               <button class="btn btn-reverificar" onclick="reverificar(<?= $ong['id_usuario'] ?>, '<?= $cnpj ?>', '<?= htmlspecialchars(addslashes($ong['nome'])) ?>')">
                 🔄 Re-verificar

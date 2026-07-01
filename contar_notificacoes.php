@@ -15,7 +15,6 @@ $total = 0;
 
 try {
     if ($tipo === "instituicao") {
-        // ✅ REMOVIDO: AND c.data_agendada >= CURRENT_DATE
         $sql = "SELECT COUNT(DISTINCT d.id_doacao) as total
                 FROM doacoes d
                 JOIN coletas c ON d.id_doacao = c.id_doacao

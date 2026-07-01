@@ -7,7 +7,6 @@ $user = 'postgres';
 $password = 'VkAcDmSLFrIVucYNadgxPezOYaaFZIZr';
 
 // NÃO USAR AS VARIÁVEIS INTERNAS - usar apenas o host público fixo
-// Removido o if que sobrescrevia as variáveis
 
 try {
     $pdo = new PDO("pgsql:host=$host;port=$port;dbname=$dbname", $user, $password, [

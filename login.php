@@ -50,13 +50,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
   
   <style>
-    /* ===== ESTILO DO TELEFONE PARA CONFINAR O MODAL ===== */
     .login-screen {
       position: relative;
       overflow: hidden;
     }
 
-    /* Overlay do SweetAlert fica dentro do .login-screen */
     .swal2-container.swal-inside-login {
       position: absolute !important;
       top: 0 !important;
@@ -66,7 +64,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       z-index: 9999;
     }
 
-    /* Popup centralizado dentro do container acima */
     .swal2-container.swal-inside-login .swal2-popup {
       width: 88% !important;
       max-width: 320px !important;
@@ -74,7 +71,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
       font-family: 'Nunito', sans-serif !important;
     }
 
-    /* Toast também fica dentro do telefone */
     .swal2-container.swal-inside-login.swal2-top-end,
     .swal2-container.swal-inside-login.swal2-top-right {
       top: 8px !important;
@@ -116,7 +112,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 <section class="login-screen" id="loginWrapper">
 
-  <!-- ── Header laranja com curva ── -->
   <div class="header">
     <a href="index.php" class="btn-back" aria-label="Voltar">&#8592;</a>
 
@@ -153,10 +148,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 <script>
 
-// ─── Referência ao elemento .login-screen para confinar os modais ───────────
+
 const loginEl = document.getElementById('loginWrapper');
 
-// Tema padrão para o SweetAlert2 - confinado dentro do telefone
+
 const swalLogin = Swal.mixin({
   target: loginEl,
   confirmButtonColor: '#f5920a',
@@ -169,7 +164,7 @@ const swalLogin = Swal.mixin({
 
 <?php if (!empty($mensagem_erro) && !empty($tipo_erro)): ?>
   
-// Mostrar modal de erro dentro do telefone
+// Mostra o modal de erro dentro do telefone
 document.addEventListener('DOMContentLoaded', function() {
     swalLogin.fire({
         title: '❌ Acesso negado',
@@ -213,7 +208,7 @@ document.getElementById('formLogin').addEventListener('submit', function(e) {
         return false;
     }
     
-    // Mostrar loading ao enviar
+    // Mostra loading ao enviar
     const btn = document.getElementById('btnLogin');
     btn.disabled = true;
     btn.innerHTML = '⏳ Entrando...';

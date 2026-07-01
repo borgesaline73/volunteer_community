@@ -36,7 +36,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     // Remover tudo que não é número
     $whatsapp_limpo = preg_replace('/\D/', '', $whatsapp);
     
-    // Validar: deve ter entre 10 e 11 dígitos (DDD + número)
+    // Validação: deve ter entre 10 e 11 dígitos (DDD + número)
     if (!empty($whatsapp_limpo) && (strlen($whatsapp_limpo) < 10 || strlen($whatsapp_limpo) > 11)) {
         $mensagem = "⚠️ WhatsApp inválido! Digite um número com DDD (ex: 11999999999)";
         $tipo_mensagem = "error";
@@ -91,7 +91,7 @@ try {
 <link rel="stylesheet" href="css/estilo_global.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 <style>
-    /* CORREÇÃO APENAS PARA ESTA PÁGINA - CENTRALIZAÇÃO */
+    /* APENAS PARA ESTA PÁGINA - CENTRALIZAÇÃO */
     body {
         display: flex;
         justify-content: center;
@@ -491,7 +491,7 @@ document.getElementById('whatsapp').addEventListener('input', function(e) {
     if (v.length > 11) v = v.slice(0, 11);
     
     if (v.length <= 2) {
-        // não formata
+        
     } else if (v.length <= 7) {
         v = '(' + v.slice(0, 2) + ') ' + v.slice(2);
     } else if (v.length <= 11) {

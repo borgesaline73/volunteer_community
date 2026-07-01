@@ -2,7 +2,7 @@
 session_start();
 require "banco.php";
 
-// ===== CAPTURAR MENSAGEM DE SUCESSO DA URL =====
+
 $mensagem_flash = '';
 $tipo_flash = '';
 if (isset($_GET['msg']) && isset($_GET['tipo'])) {
@@ -60,7 +60,7 @@ function getRandomPosts($pdo, $categoria_banco, $categoria, $limit = 10) {
                 return $query->fetchAll(PDO::FETCH_ASSOC);
             }
 
-            // ✅ CORRIGIDO: RAND() → RANDOM() (PostgreSQL)
+            
             $query = $pdo->query("SELECT p.*, u.nome, u.id_usuario as id_ong 
                                   FROM posts p 
                                   JOIN usuarios u ON p.id_usuario = u.id_usuario 
@@ -83,7 +83,6 @@ function getRandomPosts($pdo, $categoria_banco, $categoria, $limit = 10) {
                 return $query->fetchAll(PDO::FETCH_ASSOC);
             }
 
-            // ✅ CORRIGIDO: RAND() → RANDOM() (PostgreSQL)
             $query = $pdo->prepare("SELECT p.*, u.nome, u.id_usuario as id_ong 
                                     FROM posts p 
                                     JOIN usuarios u ON p.id_usuario = u.id_usuario 

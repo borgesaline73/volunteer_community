@@ -67,7 +67,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 
     <style>
-        /* Confinar SweetAlert dentro do .login-screen */
+        
         .login-screen {
             position: relative;
             overflow: hidden;
@@ -113,7 +113,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 <section class="login-screen" id="loginWrapper">
 
-    <!-- Header laranja com curva -->
+   
     <div class="header">
         <a href="login.php" class="btn-back" aria-label="Voltar">&#8592;</a>
         <div class="logo-wrapper">
@@ -131,7 +131,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             Informe o e-mail cadastrado para gerar<br>um link de recuperação de senha.
         </p>
 
-        <!-- Formulário sempre visível (SweetAlert cuida dos feedbacks) -->
+        
         <form class="form" action="recuperar_senha.php" method="post">
             <input type="email" name="email" placeholder="Seu e-mail cadastrado" required autocomplete="email">
             <button type="submit" class="btn primary">Gerar link de recuperação</button>

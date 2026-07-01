@@ -15,7 +15,7 @@ if ($tipo !== "instituicao") {
 
 $id_ong = $_SESSION["usuario_id"];
 
-// ===== CAPTURAR MENSAGEM DE SUCESSO DA URL =====
+// ===== CAPTURA MENSAGEM DE SUCESSO DA URL =====
 $mensagem_flash = '';
 $tipo_flash = '';
 if (isset($_GET['msg']) && isset($_GET['tipo'])) {
@@ -23,7 +23,7 @@ if (isset($_GET['msg']) && isset($_GET['tipo'])) {
     $tipo_flash = $_GET['tipo'];
 }
 
-// Buscar chave PIX e WhatsApp da ONG
+// Busca chave PIX e WhatsApp da ONG
 $chave_pix = null;
 $whatsapp = null;
 try {

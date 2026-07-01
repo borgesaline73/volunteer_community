@@ -1,7 +1,4 @@
 <?php
-/**
- * reverificar_ong.php
- */
 
 session_start();
 require "banco.php";

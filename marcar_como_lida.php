@@ -18,7 +18,6 @@ if (!$id_doacao) {
 }
 
 try {
-    // MySQL usa INSERT ... ON DUPLICATE KEY UPDATE
     $sql = "INSERT INTO coletas_visualizadas (id_doacao, id_ong, visualizada, visualizada_em)
             VALUES (?, ?, TRUE, NOW())
             ON DUPLICATE KEY UPDATE visualizada = TRUE, visualizada_em = NOW()";

@@ -2,7 +2,7 @@
 session_start();
 require "banco.php";
 
-// ===== CAPTURAR MENSAGEM DE SUCESSO DA URL =====
+// ===== CAPTURA AS MENSAGEM DE SUCESSO DA URL =====
 $mensagem_flash = '';
 $tipo_flash = '';
 if (isset($_GET['msg']) && isset($_GET['tipo'])) {
@@ -27,9 +27,9 @@ if ($tipo === "instituicao") {
 // Se chegou aqui, é DOADOR
 $id_doador = $_SESSION["usuario_id"];
 
-// Buscar informações básicas do doador do banco de dados
+// Busca informações básicas do doador do banco de dados
 try {
-    // Buscar apenas nome, email e tipo do usuário
+    // Busca apenas nome, email e tipo do usuário
     $sql_doador = "SELECT nome, email, tipo_usuario 
                    FROM usuarios 
                    WHERE id_usuario = ?";
@@ -45,18 +45,18 @@ try {
     $email = $doador['email'] ?? "email@exemplo.com";
     $tipo_usuario = $doador['tipo_usuario'] ?? "doador";
 
-    // Buscar ID do doador na tabela doadores
+    // Busca o  ID do doador na tabela doadores
     $stmt_doador_id = $pdo->prepare("SELECT id_doador FROM doadores WHERE id_doador = ?");
     $stmt_doador_id->execute([$id_doador]);
     $doador_info = $stmt_doador_id->fetch(PDO::FETCH_ASSOC);
     $id_doador_table = $doador_info['id_doador'] ?? null;
 
-    // Buscar coletas do doador
+    // Busca as coletas do doador
     $coletas_agendadas = [];
     $coletas_recebidas = [];
 
     if ($id_doador_table) {
-        // Buscar todas as coletas do doador
+        // Busca todas as coletas do doador
         $sql_coletas = "SELECT d.*, c.data_agendada, c.endereco as local_coleta, 
                                u.nome as nome_ong, u.email as email_ong,
                                CASE 
@@ -82,7 +82,7 @@ try {
         $stmt_coletas->execute([$id_doador_table]);
         $todas_coletas = $stmt_coletas->fetchAll(PDO::FETCH_ASSOC);
 
-        // Separar por status
+        // Separa por status
         $coletas_agendadas = array_filter($todas_coletas, function($coleta) {
             return $coleta['status'] === 'AGENDADA' || $coleta['status'] === 'PENDENTE_PIX';
         });
@@ -92,7 +92,7 @@ try {
         });
     }
 
-    // Contar notificações não lidas
+    // Conta as notificações não lidas
     $sql_notificacoes = "SELECT COUNT(*) as total 
                         FROM notificacoes 
                         WHERE id_usuario = ? AND lida = FALSE";
@@ -138,7 +138,6 @@ $rotaPerfil = "perfil.php";
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 
 <style>
-  /* ===== ESTILO PARA AS ABAS (IGUAL DO PERFIL DA ONG) ===== */
   .phone {
     position: relative;
     overflow: hidden;
@@ -196,7 +195,7 @@ $rotaPerfil = "perfil.php";
     display: block;
   }
 
-  /* Overlay do SweetAlert fica dentro do .phone */
+  
   .swal2-container.swal-inside-phone {
     position: absolute !important;
     top: 0 !important;
@@ -430,7 +429,7 @@ const swalDoador = Swal.mixin({
   }
 });
 
-// ===== VERIFICAR MENSAGEM DE SUCESSO NA URL =====
+// ===== VERIFICA MENSAGEM DE SUCESSO NA URL =====
 (function verificarMensagemSucesso() {
     const urlParams = new URLSearchParams(window.location.search);
     const msg = urlParams.get('msg');
@@ -496,7 +495,7 @@ async function atualizarNotificacoes() {
                 }
             }
         } else if (badge) {
-            badge.style.display = 'none'; // ← esconde em vez de remover
+            badge.style.display = 'none'; /
         }
     } catch (e) {}
 }
@@ -505,7 +504,7 @@ async function atualizarNotificacoes() {
 setInterval(atualizarNotificacoes, 30000);
 document.addEventListener('DOMContentLoaded', atualizarNotificacoes);
 
-// Prevenir scroll do body
+
 document.body.style.overflow = 'hidden';
 </script>
 

@@ -451,7 +451,7 @@ async function marcarTodasAoAbrir() {
     if (unreadItems.length === 0) return;
 
     try {
-        // ✅ CORRIGIDO: era 'marcar_todas_notificacoes.php'
+    
         const response = await fetch('marcar_todas_lidas.php', { method: 'POST' });
 
         if (!response.ok) return;
@@ -498,7 +498,7 @@ async function marcarTodasAoAbrir() {
 
 async function _marcarTodasNoBanco() {
     try {
-        // ✅ CORRIGIDO: era 'marcar_todas_notificacoes.php'
+      
         const response = await fetch('marcar_todas_lidas.php', { method: 'POST' });
 
         if (!response.ok) {
@@ -629,14 +629,14 @@ document.addEventListener('DOMContentLoaded', function() {
     atualizarContadorNotificacoes();
     document.body.style.overflow = 'hidden';
 });
-// ✅ Marca como lidas quando o usuário SAIR da página
+//  Marca como lidas quando o usuário SAIR da página
 document.addEventListener('visibilitychange', function() {
     if (document.visibilityState === 'hidden') {
         navigator.sendBeacon('marcar_todas_lidas.php');
     }
 });
 
-// ✅ Também marca ao navegar para outra página
+//  Também marca ao navegar para outra página
 window.addEventListener('beforeunload', function() {
     navigator.sendBeacon('marcar_todas_lidas.php');
 });
