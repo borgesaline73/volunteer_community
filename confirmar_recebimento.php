@@ -8,7 +8,7 @@ if (!isset($_SESSION["usuario_id"]) || ($_SESSION["usuario_tipo"] ?? "") !== "in
     exit;
 }
 
-$id_ong    = $_SESSION["usuario_id"];
+$id_ong = $_SESSION["usuario_id"];
 $id_doacao = $_GET['id'] ?? null;
 
 if (!$id_doacao) {
@@ -21,7 +21,7 @@ try {
     $sql_doacao = "SELECT d.*, u.nome as nome_doador, u.email as email_doador,
                           c.data_agendada, c.endereco as local_coleta,
                           CASE 
-                              WHEN d.tipo = 'ITEM'     THEN 'Doação de Itens'
+                              WHEN d.tipo = 'ITEM' THEN 'Doação de Itens'
                               WHEN d.tipo = 'DINHEIRO' THEN 'Doação em Dinheiro (PIX)'
                               ELSE d.tipo
                           END as tipo_formatado
@@ -29,7 +29,7 @@ try {
                    JOIN usuarios u ON d.id_doador = u.id_usuario 
                    LEFT JOIN coletas c ON d.id_doacao = c.id_doacao
                    WHERE d.id_doacao = ? 
-                   AND d.id_ong = ? 
+                   AND d.id_ong = ?
                    AND d.status IN ('AGENDADA', 'PENDENTE_PIX')";
 
     $stmt = $pdo->prepare($sql_doacao);
@@ -40,7 +40,6 @@ try {
         header("Location: perfil-ong.php");
         exit;
     }
-
 } catch (PDOException $e) {
     error_log("Erro ao buscar doação: " . $e->getMessage());
     header("Location: perfil-ong.php");
@@ -48,30 +47,32 @@ try {
 }
 
 // Processar confirmação via POST
-$erro       = null;
+$erro = null;
 $confirmado = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $pdo->beginTransaction();
 
+        // Doações em dinheiro (PIX) também precisam ter o status_pagamento
+        // atualizado para refletir que o valor já foi confirmado pela ONG.
         if ($doacao['tipo'] === 'DINHEIRO') {
             $stmt_update = $pdo->prepare("UPDATE doacoes 
-                                          SET status = 'RECEBIDA', 
-                                              status_pagamento = 'CONFIRMADO', 
-                                              data_doacao = CURRENT_TIMESTAMP 
-                                          WHERE id_doacao = ?");
+                                           SET status = 'RECEBIDA', 
+                                               status_pagamento = 'CONFIRMADO',
+                                               data_doacao = CURRENT_TIMESTAMP 
+                                           WHERE id_doacao = ?");
         } else {
             $stmt_update = $pdo->prepare("UPDATE doacoes 
-                                          SET status = 'RECEBIDA', 
-                                              data_doacao = CURRENT_TIMESTAMP 
-                                          WHERE id_doacao = ?");
+                                           SET status = 'RECEBIDA', 
+                                               data_doacao = CURRENT_TIMESTAMP 
+                                           WHERE id_doacao = ?");
         }
         $stmt_update->execute([$id_doacao]);
 
-        $mensagem_notificacao = "Sua doação para " . ($_SESSION["usuario_nome"] ?? "a ONG") . " foi recebida e confirmada! 🎉";
-        $stmt_notificacao = $pdo->prepare("INSERT INTO notificacoes (id_usuario, mensagem, tipo) VALUES (?, ?, 'DOACAO_RECEBIDA')");
-        $stmt_notificacao->execute([$doacao['id_doador'], $mensagem_notificacao]);
+        // A notificação para o doador é criada automaticamente pelo trigger
+        // trigger_notificar_doacao_recebida (função notificar_doacao_recebida)
+        // quando o status muda para 'RECEBIDA'. Não inserir aqui para evitar duplicidade.
 
         $pdo->commit();
         $confirmado = true;
@@ -86,64 +87,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Confirmar Recebimento - Volunteer Community</title>
-
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/estilo_global.css">
-  <link rel="stylesheet" href="css/estilo_confirmar_recebimento.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-
-  <style>
-    /* Css para deixar o SweetAlert dentro do .phone */
-    .phone {
-      position: relative;
-      overflow: hidden;
-    }
-
-    .swal2-container.swal-inside-confirmar {
-      position: absolute !important;
-      top: 0 !important;
-      left: 0 !important;
-      width: 100% !important;
-      height: 100% !important;
-      z-index: 9999;
-    }
-
-    .swal2-container.swal-inside-confirmar .swal2-popup {
-      width: 88% !important;
-      max-width: 320px !important;
-      border-radius: 20px !important;
-      font-family: 'Poppins', sans-serif !important;
-    }
-
-    .swal2-confirm {
-      background-color: #f4822f !important;
-      border-radius: 50px !important;
-      padding: 8px 20px !important;
-      font-weight: 600 !important;
-      font-size: 13px !important;
-    }
-
-    .swal2-cancel {
-      border-radius: 50px !important;
-      padding: 8px 20px !important;
-      font-weight: 600 !important;
-      font-size: 13px !important;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Confirmar Recebimento - Volunteer Community</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/estilo_global.css">
+<link rel="stylesheet" href="css/estilo_confirmar_recebimento.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<style>
+/* Confinar SweetAlert dentro do .phone */
+.phone {
+    position: relative;
+    overflow: hidden;
+}
+.swal2-container.swal-inside-confirmar {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 9999;
+}
+.swal2-container.swal-inside-confirmar .swal2-popup {
+    width: 88% !important;
+    max-width: 320px !important;
+    border-radius: 20px !important;
+    font-family: 'Poppins', sans-serif !important;
+}
+.swal2-confirm {
+    background-color: #f4822f !important;
+    border-radius: 50px !important;
+    padding: 8px 20px !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+}
+.swal2-cancel {
+    border-radius: 50px !important;
+    padding: 8px 20px !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+}
+</style>
 </head>
 <body>
 
 <div class="phone" id="phoneWrapper">
-
   <div class="header">
     <button class="back" onclick="history.back()">←</button>
   </div>
 
   <div class="content">
-
     <h1>Confirmar Recebimento</h1>
 
     <!-- CARD COM INFORMAÇÕES DA DOAÇÃO -->
@@ -160,48 +153,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <span class="info-label">📦 Tipo:</span>
         <?= htmlspecialchars($doacao['tipo_formatado']) ?>
       </div>
-      
+
       <!-- Exibir data apenas para doações de ITEM -->
       <?php if ($doacao['tipo'] == 'ITEM' && !empty($doacao['data_agendada'])): ?>
-      <div class="info-item">
-        <span class="info-label">📅 Data Agendada:</span>
-        <?= date('d/m/Y H:i', strtotime($doacao['data_agendada'])) ?>
-      </div>
+        <div class="info-item">
+          <span class="info-label">📅 Data Agendada:</span>
+          <?= date('d/m/Y H:i', strtotime($doacao['data_agendada'])) ?>
+        </div>
       <?php endif; ?>
-      
+
       <!-- Exibir local apenas para doações de ITEM -->
       <?php if ($doacao['tipo'] == 'ITEM' && !empty($doacao['local_coleta'])): ?>
-      <div class="info-item">
-        <span class="info-label">📍 Local:</span>
-        <?= htmlspecialchars($doacao['local_coleta']) ?>
-      </div>
+        <div class="info-item">
+          <span class="info-label">📍 Local:</span>
+          <?= htmlspecialchars($doacao['local_coleta']) ?>
+        </div>
       <?php endif; ?>
-      
+
       <!-- Itens doados (apenas ITEM) -->
       <?php if ($doacao['tipo'] == 'ITEM' && !empty($doacao['descricao_item'])): ?>
-      <div class="info-item">
-        <span class="info-label">📝 Itens:</span>
-        <?= htmlspecialchars($doacao['descricao_item']) ?>
-      </div>
+        <div class="info-item">
+          <span class="info-label">📝 Itens:</span>
+          <?= htmlspecialchars($doacao['descricao_item']) ?>
+        </div>
       <?php endif; ?>
-      
+
       <!-- Valor da doação (apenas PIX) -->
       <?php if ($doacao['tipo'] == 'DINHEIRO' && !empty($doacao['valor'])): ?>
-      <div class="info-item">
-        <span class="info-label">💰 Valor:</span>
-        R$ <?= number_format($doacao['valor'], 2, ',', '.') ?>
-      </div>
+        <div class="info-item">
+          <span class="info-label">💰 Valor:</span>
+          R$ <?= number_format($doacao['valor'], 2, ',', '.') ?>
+        </div>
       <?php endif; ?>
-      
+
       <!-- Comprovante PIX (apenas PIX) -->
       <?php if ($doacao['tipo'] == 'DINHEIRO' && !empty($doacao['comprovante'])): ?>
-      <div class="info-item">
-        <span class="info-label">📎 Comprovante:</span>
-        <a href="#" onclick="visualizarComprovante('<?= htmlspecialchars($doacao['comprovante']) ?>')" 
-           style="color: #f4822f; text-decoration: none;">
-          📄 Clique para visualizar
-        </a>
-      </div>
+        <div class="info-item">
+          <span class="info-label">📎 Comprovante:</span>
+          <a href="#" onclick="visualizarComprovante('<?= htmlspecialchars($doacao['comprovante']) ?>')" 
+             style="color: #f4822f; text-decoration: none;">
+            📄 Clique para visualizar
+          </a>
+        </div>
       <?php endif; ?>
     </div>
 
@@ -221,21 +214,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </button>
 
   </div><!-- /content -->
-
 </div><!-- /phone -->
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
 <script>
 const phoneEl = document.getElementById('phoneWrapper');
-
 const swalConfirmar = Swal.mixin({
     target: phoneEl,
     confirmButtonColor: '#f4822f',
     cancelButtonColor: '#aaa',
     customClass: {
         container: 'swal-inside-confirmar',
-        popup:     'swal-popup-confirmar'
+        popup: 'swal-popup-confirmar'
     }
 });
 
@@ -281,7 +271,7 @@ async function confirmarRecebimento() {
     <?php endif; ?>
     
     detalhesDoacao += `</div>`;
-    
+
     const result = await swalConfirmar.fire({
         title: 'Confirmar recebimento?',
         html: detalhesDoacao,

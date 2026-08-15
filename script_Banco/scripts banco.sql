@@ -232,11 +232,11 @@ RETURNS TRIGGER AS $$
 BEGIN
     IF NEW.status = 'RECEBIDA' AND OLD.status != 'RECEBIDA' THEN
         INSERT INTO notificacoes (id_usuario, mensagem, tipo)
-        SELECT NEW.id_doador,
-               'Sua doação foi recebida e confirmada pela ONG!',
+        SELECT NEW.id_doador, 
+               'Sua doação para ' || u_ong.nome || ' foi recebida e confirmada! 🎉',
                'DOACAO_RECEBIDA'
-        FROM usuarios
-        WHERE id_usuario = NEW.id_doador;
+        FROM usuarios u_ong
+        WHERE u_ong.id_usuario = NEW.id_ong;
     END IF;
     RETURN NEW;
 END;
@@ -251,24 +251,34 @@ EXECUTE FUNCTION notificar_doacao_recebida();
 CREATE OR REPLACE FUNCTION notificar_coleta_agendada()
 RETURNS TRIGGER AS $$
 DECLARE
-    v_id_ong       INTEGER;
-    v_nome_doador  VARCHAR(100);
-    v_tipo_doacao  VARCHAR(20);
+    v_id_ong INTEGER;
+    v_nome_doador VARCHAR(100);
+    v_tipo_doacao VARCHAR(20);
+    v_valor NUMERIC;
+    v_mensagem TEXT;
 BEGIN
-    SELECT d.id_ong, d.tipo, u.nome
-    INTO v_id_ong, v_tipo_doacao, v_nome_doador
+    -- Buscar informações da doação
+    SELECT d.id_ong, d.tipo, d.valor, u.nome 
+    INTO v_id_ong, v_tipo_doacao, v_valor, v_nome_doador
     FROM doacoes d
     JOIN usuarios u ON d.id_doador = u.id_usuario
     WHERE d.id_doacao = NEW.id_doacao;
 
+    IF v_tipo_doacao = 'DINHEIRO' THEN
+        v_mensagem := v_nome_doador || ' registrou uma doação via PIX' ||
+                      CASE WHEN v_valor IS NOT NULL 
+                           THEN ' de R$ ' || TO_CHAR(v_valor, 'FM999G999G999D00') 
+                           ELSE '' END ||
+                      '. Confirme quando o valor chegar.';
+    ELSE
+        v_mensagem := v_nome_doador || ' agendou uma coleta de ' || v_tipo_doacao ||
+                      ' para ' || TO_CHAR(NEW.data_agendada, 'DD/MM/YYYY HH24:MI') ||
+                      ' no local: ' || NEW.endereco;
+    END IF;
+
+    -- Notificar a ONG sobre a nova coleta/doação
     INSERT INTO notificacoes (id_usuario, mensagem, tipo)
-    VALUES (
-        v_id_ong,
-        v_nome_doador || ' agendou uma coleta de ' || v_tipo_doacao ||
-        ' para ' || TO_CHAR(NEW.data_agendada, 'DD/MM/YYYY HH24:MI') ||
-        ' no local: ' || NEW.endereco,
-        'COLETA_AGENDADA'
-    );
+    VALUES (v_id_ong, v_mensagem, 'COLETA_AGENDADA');
 
     RETURN NEW;
 END;

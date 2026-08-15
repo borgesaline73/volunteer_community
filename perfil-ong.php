@@ -36,7 +36,7 @@ try {
     error_log("Erro ao buscar chave PIX/WhatsApp: " . $e->getMessage());
 }
 
-// ===== BUSCAR DADOS DO USUÁRIO =====
+// ===== BUSCA DADOS DO USUÁRIO =====
 try {
     $stmt_ong = $pdo->prepare("SELECT nome, email, tipo_usuario, cpf_cnpj, verificada, verificacao_status
                                FROM usuarios WHERE id_usuario = ?");
@@ -59,7 +59,7 @@ try {
     error_log("Erro ao buscar usuário: " . $e->getMessage());
 }
 
-// ===== BUSCAR POSTS =====
+// ===== BUSCA OS POSTS =====
 $posts = [];
 try {
     $stmt_posts = $pdo->prepare("SELECT p.*, u.nome, u.id_usuario as id_ong
@@ -69,7 +69,7 @@ try {
     $posts = $stmt_posts->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) { error_log("Erro posts: " . $e->getMessage()); }
 
-// ===== BUSCAR COLETAS =====
+// ===== BUSCA AS COLETAS =====
 $coletas = [];
 try {
     $stmt_coletas = $pdo->prepare("
@@ -93,7 +93,7 @@ try {
     $coletas = $stmt_coletas->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) { error_log("Erro coletas: " . $e->getMessage()); }
 
-// ===== BUSCAR ITENS =====
+// ===== BUSCA OS ITENS =====
 $itens_aceitos = $itens_recusados = [];
 try {
     $stmt_itens = $pdo->prepare("SELECT id_item, id_ong, nome, tipo FROM itens_ong WHERE id_ong = ? ORDER BY tipo, nome ASC");
@@ -103,7 +103,7 @@ try {
     $itens_recusados = array_filter($itens, fn($i) => $i['tipo'] === 'RECUSADO');
 } catch (PDOException $e) { error_log("Erro itens: " . $e->getMessage()); }
 
-// ===== BUSCAR DESTINOS =====
+// ===== BUSCA OS DESTINOS =====
 $destinos = [];
 try {
     $stmt_destinos = $pdo->prepare("SELECT * FROM destino_doacoes WHERE id_ong = ? ORDER BY criado_em DESC");
@@ -111,7 +111,7 @@ try {
     $destinos = $stmt_destinos->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) { error_log("Erro destinos: " . $e->getMessage()); }
 
-// ===== BUSCAR NOTIFICAÇÕES =====
+// ===== BUSCA AS NOTIFICAÇÕES =====
 $total_notificacoes = 0;
 try {
     $stmt_notif = $pdo->prepare("SELECT COUNT(*) as total FROM notificacoes WHERE id_usuario = ? AND lida = FALSE");

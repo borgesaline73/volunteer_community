@@ -151,15 +151,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmt_coleta->execute([$id_doacao, $local_selecionado, $data_hora_agendada]);
                 }
 
-                // Notificação para a ONG
-                $nome_doador          = $_SESSION["usuario_nome"] ?? 'Doador';
-                $msg_notif            = $is_pix
-                    ? "{$nome_doador} registrou uma doação via PIX" . (!empty($valor_doacao) ? " de R$ " . number_format($valor_doacao, 2, ',', '.') : "") . ". Confirme quando o valor chegar."
-                    : "{$nome_doador} agendou uma coleta de {$tipo_doacao} para " . date('d/m/Y H:i', strtotime($data_hora_agendada)) . " no local: {$local_selecionado}";
-
-                $stmt_notif = $pdo->prepare("INSERT INTO notificacoes (id_usuario, mensagem, tipo) 
-                                             VALUES (?, ?, 'COLETA_AGENDADA')");
-                $stmt_notif->execute([$ong_escolhida, $msg_notif]);
+                // A notificação para a ONG é criada automaticamente pelo trigger
+                // trigger_notificar_coleta_agendada (função notificar_coleta_agendada)
+                // ao inserir na tabela coletas. Não inserir aqui para evitar duplicidade.
 
                 $pdo->commit();
 
@@ -616,7 +610,7 @@ $mes_atual = (int)date('m');
           <button type="button" class="btn-primary" id="btnAgendar" disabled onclick="confirmarAgendamento()">✅ Agendar</button>
           <button type="button" class="btn-secondary" onclick="window.location.href='agendar_coleta.php'">🔄 Trocar ONG</button>
         </div>
-      </div>
+      </div><!-- /camposNormais -->
 
     </form>
     <?php endif; ?>
@@ -879,7 +873,7 @@ function selecionarOng(card) {
     if (btn) btn.disabled = false;
 }
 
-
+// ── Init ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function () {
     updateTipoDisplay();
     updateCalendar();
