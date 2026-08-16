@@ -215,7 +215,7 @@ BEGIN
     JOIN coletas c ON d.id_doacao = c.id_doacao
     LEFT JOIN coletas_visualizadas cv ON d.id_doacao = cv.id_doacao AND cv.id_ong = p_id_ong
     WHERE d.id_ong = p_id_ong
-    AND d.status = 'AGENDADA'
+    AND d.status IN ('AGENDADA', 'PENDENTE_PIX')
     AND c.data_agendada >= CURRENT_DATE
     AND (cv.visualizada IS NULL OR cv.visualizada = FALSE);
     RETURN total;
@@ -248,6 +248,9 @@ FOR EACH ROW
 EXECUTE FUNCTION notificar_doacao_recebida();
 
 -- Notificar ONG quando coleta for agendada
+-- ATUALIZADA: doações via PIX agora geram uma mensagem própria
+-- ("registrou uma doação via PIX..."), sem o trecho "no local: PIX",
+-- já que PIX é um método de pagamento e não um endereço físico.
 CREATE OR REPLACE FUNCTION notificar_coleta_agendada()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -265,12 +268,14 @@ BEGIN
     WHERE d.id_doacao = NEW.id_doacao;
 
     IF v_tipo_doacao = 'DINHEIRO' THEN
+        -- Doação via PIX: sem "no local", já que PIX não é um lugar físico
         v_mensagem := v_nome_doador || ' registrou uma doação via PIX' ||
                       CASE WHEN v_valor IS NOT NULL 
-                           THEN ' de R$ ' || TO_CHAR(v_valor, 'FM999G999G999D00') 
+                           THEN ' no valor de R$ ' || TO_CHAR(v_valor, 'FM999G999G999D00') 
                            ELSE '' END ||
-                      '. Confirme quando o valor chegar.';
+                      '. Confirme quando o valor chegar na sua chave PIX.';
     ELSE
+        -- Doação de ITEM: mantém local e horário da coleta
         v_mensagem := v_nome_doador || ' agendou uma coleta de ' || v_tipo_doacao ||
                       ' para ' || TO_CHAR(NEW.data_agendada, 'DD/MM/YYYY HH24:MI') ||
                       ' no local: ' || NEW.endereco;
