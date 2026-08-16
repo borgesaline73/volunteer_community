@@ -495,7 +495,7 @@ async function atualizarNotificacoes() {
                 }
             }
         } else if (badge) {
-            badge.style.display = 'none'; /
+            badge.style.display = 'none';
         }
     } catch (e) {}
 }

@@ -61,9 +61,23 @@ try {
     // BUSCA NOTIFICAÇÕES (SOMENTE SE USUÁRIO ESTIVER LOGADO)
     $total_notificacoes = 0;
     if ($id_visitante) {
-        $stmt_notif = $pdo->prepare("SELECT COUNT(*) as total FROM notificacoes WHERE id_usuario = ? AND lida = FALSE");
-        $stmt_notif->execute([$id_visitante]);
-        $total_notificacoes = $stmt_notif->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+        if ($tipo_visitante === "instituicao") {
+            $stmt_notif = $pdo->prepare("
+                SELECT COUNT(DISTINCT d.id_doacao) as total
+                FROM doacoes d
+                JOIN coletas c ON d.id_doacao = c.id_doacao
+                LEFT JOIN coletas_visualizadas cv
+                    ON d.id_doacao = cv.id_doacao AND cv.id_ong = ?
+                WHERE d.id_ong = ?
+                AND d.status IN ('AGENDADA', 'PENDENTE_PIX')
+                AND (cv.id_doacao IS NULL OR cv.visualizada = FALSE)
+            ");
+            $stmt_notif->execute([$id_visitante, $id_visitante]);
+        } else {
+            $stmt_notif = $pdo->prepare("SELECT COUNT(*) as total FROM notificacoes WHERE id_usuario = ? AND lida = FALSE");
+            $stmt_notif->execute([$id_visitante]);
+        }
+        $total_notificacoes = (int)($stmt_notif->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
     }
 
 } catch (PDOException $e) {
@@ -505,7 +519,8 @@ body {
 .destino-img {
     width: 100%;
     height: 160px;
-    object-fit: cover;
+    object-fit: contain;
+    background: #f4f4f4;
 }
 
 .destino-body {

@@ -112,11 +112,22 @@ try {
 } catch (PDOException $e) { error_log("Erro destinos: " . $e->getMessage()); }
 
 // ===== BUSCA AS NOTIFICAÇÕES =====
+// Mesma lógica usada em contar_notificacoes.php para instituições,
+// para evitar divergência entre o valor renderizado e o valor buscado via JS.
 $total_notificacoes = 0;
 try {
-    $stmt_notif = $pdo->prepare("SELECT COUNT(*) as total FROM notificacoes WHERE id_usuario = ? AND lida = FALSE");
-    $stmt_notif->execute([$id_ong]);
-    $total_notificacoes = $stmt_notif->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+    $stmt_notif = $pdo->prepare("
+        SELECT COUNT(DISTINCT d.id_doacao) as total
+        FROM doacoes d
+        JOIN coletas c ON d.id_doacao = c.id_doacao
+        LEFT JOIN coletas_visualizadas cv
+            ON d.id_doacao = cv.id_doacao AND cv.id_ong = ?
+        WHERE d.id_ong = ?
+        AND d.status IN ('AGENDADA', 'PENDENTE_PIX')
+        AND (cv.id_doacao IS NULL OR cv.visualizada = FALSE)
+    ");
+    $stmt_notif->execute([$id_ong, $id_ong]);
+    $total_notificacoes = (int)($stmt_notif->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
 } catch (PDOException $e) { error_log("Erro notif: " . $e->getMessage()); }
 
 $rotaPlus   = "criar_post.php";
@@ -281,7 +292,8 @@ $rotaPerfil = "perfil-ong.php";
   .destino-img {
     width: 100%;
     height: 180px;
-    object-fit: cover;
+    object-fit: contain;
+    background: #f4f4f4;
   }
   
   .destino-body {
@@ -474,6 +486,9 @@ $rotaPerfil = "perfil-ong.php";
            style="display: block; text-align: center;">
           💬 Testar Meu WhatsApp
         </a>
+        <button class="btn-whatsapp" style="background:#128C7E;" onclick="window.location.href='editar_whatsapp.php'">
+          ✏️ Editar WhatsApp
+        </button>
       <?php endif; ?>
     </div>
 

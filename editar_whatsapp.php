@@ -73,12 +73,21 @@ function formatarWhatsapp($numero) {
     return $numero;
 }
 
-// Buscar total de notificações
+// Buscar total de notificações (esta tela é exclusiva de instituições)
 $total_notificacoes = 0;
 try {
-    $stmt_notif = $pdo->prepare("SELECT COUNT(*) as total FROM notificacoes WHERE id_usuario = ? AND lida = FALSE");
-    $stmt_notif->execute([$id_ong]);
-    $total_notificacoes = $stmt_notif->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+    $stmt_notif = $pdo->prepare("
+        SELECT COUNT(DISTINCT d.id_doacao) as total
+        FROM doacoes d
+        JOIN coletas c ON d.id_doacao = c.id_doacao
+        LEFT JOIN coletas_visualizadas cv
+            ON d.id_doacao = cv.id_doacao AND cv.id_ong = ?
+        WHERE d.id_ong = ?
+        AND d.status IN ('AGENDADA', 'PENDENTE_PIX')
+        AND (cv.id_doacao IS NULL OR cv.visualizada = FALSE)
+    ");
+    $stmt_notif->execute([$id_ong, $id_ong]);
+    $total_notificacoes = (int)($stmt_notif->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
 } catch (PDOException $e) {}
 ?>
 <!DOCTYPE html>
@@ -91,6 +100,18 @@ try {
 <link rel="stylesheet" href="css/estilo_global.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 <style>
+    /* Restringe o SweetAlert dentro da moldura do celular (.phone),
+       igual ao que já existe nas outras telas do app.
+       Obs: .phone já tem position:relative e overflow:hidden definidos abaixo. */
+    .swal2-container.swal-inside-phone {
+        position: absolute !important; top: 0 !important; left: 0 !important;
+        width: 100% !important; height: 100% !important; z-index: 9999;
+    }
+    .swal2-container.swal-inside-phone .swal2-popup {
+        width: 88% !important; max-width: 340px !important;
+        border-radius: 16px !important; font-family: 'Poppins', sans-serif !important;
+    }
+
     /* APENAS PARA ESTA PÁGINA - CENTRALIZAÇÃO */
     body {
         display: flex;

@@ -46,7 +46,7 @@ try {
                         JOIN coletas c ON d.id_doacao = c.id_doacao
                         LEFT JOIN coletas_visualizadas cv ON d.id_doacao = cv.id_doacao AND cv.id_ong = ?
                         WHERE d.id_ong = ? 
-                        AND d.status = 'AGENDADA'
+                        AND d.status IN ('AGENDADA', 'PENDENTE_PIX')
                         ORDER BY c.data_agendada DESC";
         
         $stmt_coletas = $pdo->prepare($sql_coletas);
@@ -54,12 +54,15 @@ try {
         $coletas = $stmt_coletas->fetchAll(PDO::FETCH_ASSOC);
         
         foreach ($coletas as $coleta) {
+            $mensagem = $coleta['nome_doador'] . ' agendou uma coleta de ' . $coleta['tipo'] .
+                        ' para ' . date('d/m/Y H:i', strtotime($coleta['data_agendada']));
+            if ($coleta['tipo'] !== 'DINHEIRO') {
+                $mensagem .= ' no local: ' . $coleta['local_coleta'];
+            }
             $notificacoes[] = [
                 'id_notificacao' => 'coleta_' . $coleta['id_doacao'],
                 'id_doacao' => $coleta['id_doacao'],
-                'mensagem' => $coleta['nome_doador'] . ' agendou uma coleta de ' . $coleta['tipo'] . 
-                             ' para ' . date('d/m/Y H:i', strtotime($coleta['data_agendada'])) . 
-                             ' no local: ' . $coleta['local_coleta'],
+                'mensagem' => $mensagem,
                 'data_envio' => $coleta['data_agendada'],
                 'lida' => $coleta['lida'],
                 'tipo' => 'COLETA_AGENDADA',
@@ -348,9 +351,9 @@ function getTituloMensagem($mensagem, $tipo = null) {
     <button class="plus-btn" onclick="window.location.href='<?= $rotaPlus ?>'">+</button>
     <a href="notificacoes.php" class="menu-item active">
       🔔<span>Notificações</span>
-      <?php if ($total_nao_lidas > 0): ?>
-        <span class="badge" id="badge-count"><?= $total_nao_lidas ?></span>
-      <?php endif; ?>
+      <!-- Badge removido aqui de propósito: ao abrir esta página, tudo é
+           marcado como lido automaticamente (ver marcarTodasAoAbrir()),
+           então mostrar o número aqui só causa um "pisca e some". -->
     </a>
     <a href="<?= $rotaPerfil ?>" class="menu-item">👤<span>Perfil</span></a>
   </div>

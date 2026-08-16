@@ -26,7 +26,7 @@ try {
                 LEFT JOIN coletas_visualizadas cv 
                     ON d.id_doacao = cv.id_doacao AND cv.id_ong = ?
                 WHERE d.id_ong = ? 
-                AND d.status = 'AGENDADA'
+                AND d.status IN ('AGENDADA', 'PENDENTE_PIX')
                 AND (cv.id_doacao IS NULL OR cv.visualizada = FALSE)
                 ORDER BY c.data_agendada ASC";
 
@@ -35,11 +35,14 @@ try {
         $coletas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         foreach ($coletas as $coleta) {
+            $mensagem = $coleta['nome_doador'] . ' agendou uma coleta de ' . $coleta['tipo'] .
+                        ' para ' . date('d/m H:i', strtotime($coleta['data_agendada']));
+            if ($coleta['tipo'] !== 'DINHEIRO') {
+                $mensagem .= ' no local: ' . $coleta['local_coleta'];
+            }
             $novas_notificacoes[] = [
                 'id'        => 'coleta_' . $coleta['id_doacao'],
-                'mensagem'  => $coleta['nome_doador'] . ' agendou uma coleta de ' . $coleta['tipo'] .
-                               ' para ' . date('d/m H:i', strtotime($coleta['data_agendada'])) .
-                               ' no local: ' . $coleta['local_coleta'],
+                'mensagem'  => $mensagem,
                 'data_envio' => $coleta['data_agendada'],
                 'tipo'      => 'COLETA_AGENDADA'
             ];

@@ -21,7 +21,7 @@ try {
                 LEFT JOIN coletas_visualizadas cv
                     ON d.id_doacao = cv.id_doacao AND cv.id_ong = ?
                 WHERE d.id_ong = ?
-                AND d.status = 'AGENDADA'
+                AND d.status IN ('AGENDADA', 'PENDENTE_PIX')
                 AND (cv.id_doacao IS NULL OR cv.visualizada = FALSE)";
 
         $stmt = $pdo->prepare($sql);

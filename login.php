@@ -168,7 +168,7 @@ const swalLogin = Swal.mixin({
 document.addEventListener('DOMContentLoaded', function() {
     swalLogin.fire({
         title: '❌ Acesso negado',
-        html: '<?= htmlspecialchars($mensagem_erro) ?>',
+        html: <?= json_encode($mensagem_erro) ?>,
         icon: '<?= $tipo_erro ?>',
         confirmButtonText: 'Tentar novamente',
         allowOutsideClick: false,

@@ -38,9 +38,23 @@ if ($tipoUsuario === "instituicao") {
 // ===== BUSCAR NOTIFICAÇÕES =====
 $total_notificacoes = 0;
 try {
-    $stmt_notif = $pdo->prepare("SELECT COUNT(*) as total FROM notificacoes WHERE id_usuario = ? AND lida = FALSE");
-    $stmt_notif->execute([$_SESSION["usuario_id"]]);
-    $total_notificacoes = $stmt_notif->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+    if ($tipoUsuario === "instituicao") {
+        $stmt_notif = $pdo->prepare("
+            SELECT COUNT(DISTINCT d.id_doacao) as total
+            FROM doacoes d
+            JOIN coletas c ON d.id_doacao = c.id_doacao
+            LEFT JOIN coletas_visualizadas cv
+                ON d.id_doacao = cv.id_doacao AND cv.id_ong = ?
+            WHERE d.id_ong = ?
+            AND d.status IN ('AGENDADA', 'PENDENTE_PIX')
+            AND (cv.id_doacao IS NULL OR cv.visualizada = FALSE)
+        ");
+        $stmt_notif->execute([$_SESSION["usuario_id"], $_SESSION["usuario_id"]]);
+    } else {
+        $stmt_notif = $pdo->prepare("SELECT COUNT(*) as total FROM notificacoes WHERE id_usuario = ? AND lida = FALSE");
+        $stmt_notif->execute([$_SESSION["usuario_id"]]);
+    }
+    $total_notificacoes = (int)($stmt_notif->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
 } catch (PDOException $e) {
     error_log("Erro notif: " . $e->getMessage());
 }
