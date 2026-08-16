@@ -171,6 +171,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <link rel="stylesheet" href="css/estilo_global.css">
     <link rel="stylesheet" href="css/estilo_cadastro.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <?php include 'google_analytics.php'; ?>
 
     <style>
         .phone { position: relative; overflow: hidden; }

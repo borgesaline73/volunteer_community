@@ -108,6 +108,7 @@ try {
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/estilo_global.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<?php include 'google_analytics.php'; ?>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { background: #f6f4f2; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; font-family: 'Poppins', sans-serif; }

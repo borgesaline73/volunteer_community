@@ -99,6 +99,7 @@ try {
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/estilo_global.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<?php include 'google_analytics.php'; ?>
 <style>
     /* Restringe o SweetAlert dentro da moldura do celular (.phone),
        igual ao que já existe nas outras telas do app.

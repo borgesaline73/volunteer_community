@@ -103,6 +103,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && $valido && $registro) {
   <link rel="stylesheet" href="css/estilo_global.css">
   <link rel="stylesheet" href="css/estilo_login.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <?php include 'google_analytics.php'; ?>
 
   <style>
     /* Deixa o  SweetAlert dentro do .login-screen */

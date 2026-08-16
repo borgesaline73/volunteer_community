@@ -45,6 +45,7 @@ if ($id_post > 0) {
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/estilo_global.css">
 <link rel="stylesheet" href="css/estilo_criar_post.css">
+<?php include 'google_analytics.php'; ?>
 </head>
 
 <body>
