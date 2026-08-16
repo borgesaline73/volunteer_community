@@ -11,5 +11,8 @@ RUN echo "upload_max_filesize = 20M" > /usr/local/etc/php/conf.d/uploads.ini \
 WORKDIR /app
 COPY . /app
 
+
+ENV PORT=8000
 EXPOSE 8000
-CMD ["php", "-S", "0.0.0.0:8000", "-t", "/app"]
+
+CMD php -S 0.0.0.0:$PORT -t /app
