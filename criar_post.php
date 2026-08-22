@@ -98,7 +98,7 @@ if ($id_post > 0) {
       <?php if ($modo_edicao && !empty($post['imagem'])): ?>
         <div class="imagem-atual">
           <p>Imagem atual:</p>
-          <img src="uploads/<?= htmlspecialchars($post['imagem']) ?>" alt="Imagem atual"
+          <img src="<?= htmlspecialchars($post['imagem']) ?>" alt="Imagem atual"
                onerror="this.parentElement.style.display='none'">
 
           <label class="trocar-imagem">
