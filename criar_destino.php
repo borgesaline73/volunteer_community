@@ -1,6 +1,7 @@
 <?php
 session_start();
 require "banco.php";
+require "cloudinary.php";
 
 if (!isset($_SESSION["usuario_id"]) || $_SESSION["usuario_tipo"] !== "instituicao") {
     header("Location: login.php");
@@ -41,22 +42,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if (empty($titulo) || empty($descricao)) {
         $erro = "Preencha todos os campos obrigatórios.";
     } else {
-        // Upload de nova imagem
+        // Upload de nova imagem (Cloudinary)
         if (isset($_FILES['imagem']) && $_FILES['imagem']['error'] === UPLOAD_ERR_OK) {
             $ext = strtolower(pathinfo($_FILES['imagem']['name'], PATHINFO_EXTENSION));
             $extensoes_validas = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-            
+
             if (!in_array($ext, $extensoes_validas)) {
                 $erro = "Formato de imagem inválido. Use JPG, PNG, GIF ou WEBP.";
             } else {
-                $nome_imagem = uniqid("destino_") . "." . $ext;
-                $caminho = "uploads/" . $nome_imagem;
-                
-                if (move_uploaded_file($_FILES['imagem']['tmp_name'], $caminho)) {
-                    if (!empty($imagem_atual) && file_exists("uploads/" . $imagem_atual)) {
-                        unlink("uploads/" . $imagem_atual);
-                    }
-                    $imagem_nova = $nome_imagem;
+                $urlImagem = uploadCloudinary($_FILES['imagem']['tmp_name']);
+                if ($urlImagem) {
+                    $imagem_nova = $urlImagem;
+                } else {
+                    $erro = "Não foi possível enviar a imagem. Tente novamente.";
                 }
             }
         }
@@ -72,7 +70,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     $stmt->execute([$id_ong, $titulo, $descricao, $imagem_nova]);
                     $msg_sucesso = "✅ Publicação criada com sucesso!";
                 }
-                
+
                 header("Location: perfil-ong.php?msg=" . urlencode($msg_sucesso) . "&tipo=success");
                 exit;
             } catch (PDOException $e) {
@@ -173,7 +171,7 @@ input[type=file] { display: none; }
         
         <?php if (!empty($dados['imagem'])): ?>
           <div class="imagem-preview">
-            <img src="uploads/<?= htmlspecialchars($dados['imagem']) ?>" alt="Imagem atual">
+            <img src="<?= htmlspecialchars($dados['imagem']) ?>" alt="Imagem atual">
             <small>Imagem atual</small>
           </div>
         <?php endif; ?>

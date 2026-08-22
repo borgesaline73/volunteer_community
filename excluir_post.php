@@ -17,10 +17,7 @@ if ($id_post > 0) {
     $post = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($post) {
-        // Remove imagem do servidor se existir
-        if (!empty($post['imagem']) && file_exists("uploads/" . $post['imagem'])) {
-            unlink("uploads/" . $post['imagem']);
-        }
+        // A imagem fica hospedada no Cloudinary; a exclusão do post só remove o registro do banco.
         $pdo->prepare("DELETE FROM posts WHERE id_post = ? AND id_usuario = ?")->execute([$id_post, $id_ong]);
     }
 }

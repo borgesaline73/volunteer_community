@@ -566,7 +566,7 @@ body {
 
                         <div class="carousel-img-wrapper">
                             <?php if (!empty($post['imagem'])): ?>
-                                <img src="uploads/<?= htmlspecialchars($post['imagem']) ?>"
+                                <img src="<?= htmlspecialchars($post['imagem']) ?>"
                                      class="carousel-img"
                                      alt="<?= $post['titulo'] ?>"
                                      onerror="this.onerror=null; this.style.display='none'; this.parentElement.innerHTML='<div class=\'carousel-img-placeholder\'>📢</div>'">

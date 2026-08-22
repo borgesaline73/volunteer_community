@@ -737,7 +737,7 @@ body {
                         <?php endif; ?>
                         <div class="post-content"><?= nl2br(htmlspecialchars($post['descricao'])) ?></div>
                         <?php if (!empty($post['imagem'])): ?>
-                            <img src="uploads/<?= htmlspecialchars($post['imagem']) ?>" class="post-image" alt="Imagem do post">
+                            <img src="<?= htmlspecialchars($post['imagem']) ?>" class="post-image" alt="Imagem do post">
                         <?php endif; ?>
                         <?php if ($tipo_visitante === 'doador'): ?>
                             <button class="btn-doar-post" onclick="confirmarDoacao(<?= $id_ong ?>, '<?= htmlspecialchars(addslashes($nome_ong)) ?>')">
@@ -786,7 +786,7 @@ body {
                         <?php foreach ($destinos as $i => $d): ?>
                             <div class="destino-slide <?= $i === 0 ? 'active' : '' ?>">
                                 <?php if (!empty($d['imagem'])): ?>
-                                    <img src="uploads/<?= htmlspecialchars($d['imagem']) ?>" class="destino-img" alt="Imagem">
+                                    <img src="<?= htmlspecialchars($d['imagem']) ?>" class="destino-img" alt="Imagem" class="destino-img" alt="Imagem">
                                 <?php endif; ?>
                                 <div class="destino-body">
                                     <div class="destino-titulo"><?= htmlspecialchars($d['titulo']) ?></div>

@@ -16,7 +16,6 @@ if ($id <= 0) {
 }
 
 try {
-    // Buscar imagem para excluir do servidor
     $stmt = $pdo->prepare("SELECT imagem FROM destino_doacoes WHERE id_destino = ? AND id_ong = ?");
     $stmt->execute([$id, $id_ong]);
     $destino = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -26,12 +25,7 @@ try {
         exit;
     }
     
-    // Excluir imagem se existir
-    if (!empty($destino['imagem']) && file_exists("uploads/" . $destino['imagem'])) {
-        unlink("uploads/" . $destino['imagem']);
-    }
-    
-    // Excluir do banco
+    // A imagem fica hospedada no Cloudinary; a exclusão só remove o registro do banco.
     $stmt = $pdo->prepare("DELETE FROM destino_doacoes WHERE id_destino = ? AND id_ong = ?");
     $stmt->execute([$id, $id_ong]);
     
@@ -42,4 +36,3 @@ try {
     header("Location: perfil-ong.php?msg=" . urlencode("Erro ao excluir: " . $e->getMessage()) . "&tipo=error");
     exit;
 }
-?>

@@ -521,7 +521,7 @@ $rotaPerfil = "perfil-ong.php";
               <?php endif; ?>
               <div class="post-content"><?= nl2br(htmlspecialchars($post['descricao'])) ?></div>
               <?php if (!empty($post['imagem'])): ?>
-                <img src="uploads/<?= $post['imagem'] ?>" class="post-image"
+                <img src="<?= $post['imagem'] ?>" class="post-image"
                      alt="<?= htmlspecialchars($post['titulo']) ?>" onerror="this.style.display='none'">
               <?php endif; ?>
               <div class="post-acoes">
@@ -599,7 +599,7 @@ $rotaPerfil = "perfil-ong.php";
             <?php foreach ($destinos as $indice => $destino_atual): ?>
               <div class="destino-slide <?= $indice === 0 ? 'active' : '' ?>" data-indice="<?= $indice ?>">
                 <?php if (!empty($destino_atual['imagem'])): ?>
-                  <img src="uploads/<?= htmlspecialchars($destino_atual['imagem']) ?>" class="destino-img" alt="<?= htmlspecialchars($destino_atual['titulo']) ?>">
+                  <img src="<?= htmlspecialchars($destino_atual['imagem']) ?>" class="destino-img" alt="<?= htmlspecialchars($destino_atual['titulo']) ?>">
                 <?php endif; ?>
                 <div class="destino-body">
                   <div class="destino-titulo"><?= htmlspecialchars($destino_atual['titulo']) ?></div>
