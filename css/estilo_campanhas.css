@@ -23,6 +23,7 @@ body {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
+  min-height: 100dvh;
   padding: 20px;
   font-family: 'Poppins', sans-serif;
 }
@@ -32,6 +33,7 @@ body {
   max-width: 430px;
   background: var(--white);
   height: 90vh;
+  height: 90dvh;
   max-height: 800px;
   border-radius: var(--radius);
   overflow: hidden;
@@ -396,7 +398,7 @@ body {
 
 /* ===== MENU INFERIOR ===== */
 .bottom {
-  height: 72px;
+  min-height: 72px;
   border-top: 1px solid #f0f0f0;
   display: flex;
   align-items: center;
@@ -408,6 +410,7 @@ body {
   right: 0;
   z-index: 100;
   padding: 0 8px;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .menu-item {

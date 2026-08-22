@@ -7,6 +7,7 @@ body {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
+  min-height: 100dvh;
   padding: 20px;
   font-family: "Poppins", sans-serif;
   overflow: hidden;
@@ -17,6 +18,7 @@ body {
   max-width: 430px;
   background: #fff;
   height: 90vh;
+  height: 90dvh;
   max-height: 800px;
   border-radius: 32px;
   box-shadow: 0 10px 40px rgba(0,0,0,0.06);
@@ -155,7 +157,7 @@ button[type="submit"]:active {
 
 /* MENU INFERIOR FIXO */
 .bottom {
-  height: 74px;
+  min-height: 74px;
   border-top: 1px solid #eee;
   display: flex;
   align-items: center;
@@ -163,6 +165,7 @@ button[type="submit"]:active {
   gap: 40px;
   background: #fff;
   flex-shrink: 0;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .menu-item {

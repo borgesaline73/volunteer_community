@@ -13,6 +13,7 @@ body {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
+  min-height: 100dvh;
   padding: 20px;
   font-family: "Poppins", sans-serif;
 }
@@ -26,6 +27,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 90vh;
+  height: 90dvh;
   max-height: 800px;
   position: relative;
   overflow: hidden;
