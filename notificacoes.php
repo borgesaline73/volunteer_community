@@ -225,6 +225,11 @@ function getTituloMensagem($mensagem, $tipo = null) {
 
   .bottom {
     padding-bottom: env(safe-area-inset-bottom) !important;
+    gap: 30px !important;
+  }
+
+  .menu-item {
+    font-size: 11px !important;
   }
 }
 </style>

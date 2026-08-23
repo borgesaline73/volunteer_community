@@ -306,4 +306,8 @@ button[type="submit"]:active {
     border-radius: 0;
     box-shadow: none;
   }
+
+  .bottom {
+    gap: 30px !important;
+  }
 }
