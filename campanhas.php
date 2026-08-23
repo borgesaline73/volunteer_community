@@ -190,6 +190,8 @@ body {
   display: flex;
   gap: 6px;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
   padding: 12px 20px 4px;
   scrollbar-width: none;
   margin: 0;
@@ -215,6 +217,7 @@ body {
   white-space: nowrap;
   font-family: 'Poppins', sans-serif;
   text-decoration: none;
+  touch-action: manipulation;
 }
 
 .tab-categoria:hover:not(.active) {
