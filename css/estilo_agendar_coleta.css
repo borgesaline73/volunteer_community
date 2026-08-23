@@ -379,6 +379,16 @@ body {
   background: #f5f5f5;
 }
 
+.day.disabled {
+  color: #ccc;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.day.disabled:hover {
+  background: transparent;
+}
+
 /* HORÁRIOS */
 .section {
   padding: 6px 20px 0;
