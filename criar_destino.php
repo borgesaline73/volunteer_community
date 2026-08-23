@@ -109,8 +109,8 @@ try {
 <?php include 'google_analytics.php'; ?>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #f6f4f2; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; font-family: 'Poppins', sans-serif; }
-.phone { width: 100%; max-width: 430px; background: #fff; height: 90vh; max-height: 800px; border-radius: 32px; box-shadow: 0 10px 40px rgba(0,0,0,0.06); display: flex; flex-direction: column; overflow: hidden; }
+body { background: #f6f4f2; display: flex; justify-content: center; align-items: center; min-height: 100vh; min-height: 100dvh; padding: 20px; font-family: 'Poppins', sans-serif; }
+.phone { width: 100%; max-width: 430px; background: #fff; height: 90vh; height: 90dvh; max-height: 800px; border-radius: 32px; box-shadow: 0 10px 40px rgba(0,0,0,0.06); display: flex; flex-direction: column; overflow: hidden; }
 .header { padding: 18px 20px 10px; display: flex; align-items: center; justify-content: space-between; background: #fff; border-bottom: 1px solid #f0f0f0; }
 .header-title { flex: 1; text-align: center; font-weight: 600; font-size: 16px; }
 .main-content { flex: 1; overflow-y: auto; padding: 20px; }
@@ -129,10 +129,35 @@ body { background: #f6f4f2; display: flex; justify-content: center; align-items:
 .file-label { display: block; border: 1px dashed #ddd; border-radius: 12px; padding: 12px 14px; font-size: 13px; color: #888; cursor: pointer; text-align: center; }
 input[type=file] { display: none; }
 #nome-arquivo { font-size: 12px; color: #f4822f; margin-top: 4px; }
-.bottom { height: 74px; border-top: 1px solid #eee; display: flex; align-items: center; justify-content: center; gap: 40px; background: #fff; position: absolute; bottom: 0; left: 0; right: 0; }
+.bottom { min-height: 74px; border-top: 1px solid #eee; display: flex; align-items: center; justify-content: center; gap: 40px; background: #fff; position: absolute; bottom: 0; left: 0; right: 0; padding-bottom: env(safe-area-inset-bottom); }
 .menu-item { text-decoration: none; font-size: 11px; color: #aaa; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 2px; position: relative; }
 .plus-btn { width: 52px; height: 52px; border-radius: 50%; background: #f4822f; color: #fff; font-size: 28px; border: none; margin-top: -30px; cursor: pointer; }
 .notification-badge { position: absolute; top: -5px; right: -8px; background: #ff4444; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; display: flex; align-items: center; justify-content: center; }
+
+/* ===== FIX iOS SAFARI: usa a altura real do viewport (position:fixed)
+   ao invés de vh/dvh, evitando o bug em que a barra de endereço some
+   e empurra o menu inferior pra fora da área visível ===== */
+@media (max-width: 480px) {
+  body {
+    padding: 0 !important;
+    align-items: stretch !important;
+    overflow: hidden !important;
+  }
+
+  .phone {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .bottom {
+    padding-bottom: env(safe-area-inset-bottom) !important;
+  }
+}
 </style>
 </head>
 <body>

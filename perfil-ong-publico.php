@@ -118,6 +118,7 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
+    min-height: 100dvh;
     padding: 20px;
     font-family: "Poppins", sans-serif;
 }
@@ -127,6 +128,7 @@ body {
     max-width: 430px;
     background: #fff;
     height: 90vh;
+    height: 90dvh;
     max-height: 800px;
     border-radius: 32px;
     box-shadow: 0 10px 40px rgba(0,0,0,0.06);
@@ -650,6 +652,31 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/* ===== FIX iOS SAFARI: usa a altura real do viewport (position:fixed)
+   ao invés de vh/dvh, evitando o bug em que a barra de endereço some
+   e empurra o menu inferior pra fora da área visível ===== */
+@media (max-width: 480px) {
+  body {
+    padding: 0 !important;
+    align-items: stretch !important;
+    overflow: hidden !important;
+  }
+
+  .phone {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .bottom {
+    padding-bottom: env(safe-area-inset-bottom) !important;
+  }
 }
 </style>
 </head>

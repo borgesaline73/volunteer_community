@@ -112,13 +112,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $mensagem = '<div class="error-message">Selecione uma ONG para doação!</div>';
         } elseif (!$is_pix && (empty($data_selecionada) || empty($horario_selecionado) || empty($local_selecionado))) {
             $mensagem = '<div class="error-message">Preencha todos os campos!</div>';
-        } elseif (!$is_pix && (
-            !DateTime::createFromFormat('Y-m-d', $data_selecionada)
-            || DateTime::createFromFormat('Y-m-d', $data_selecionada)->format('Y-m-d') !== $data_selecionada
-        )) {
-            $mensagem = '<div class="error-message">Data inválida!</div>';
-        } elseif (!$is_pix && $data_selecionada < date('Y-m-d')) {
-            $mensagem = '<div class="error-message">Não é possível agendar uma coleta em uma data retroativa!</div>';
         } elseif (!$id_doador_table) {
             $mensagem = '<div class="error-message">❌ Erro: Doador não encontrado.</div>';
         } else {
@@ -334,6 +327,31 @@ $mes_atual = (int)date('m');
     gap: 4px;
     text-decoration: none;
   }
+
+/* ===== FIX iOS SAFARI: usa a altura real do viewport (position:fixed)
+   ao invés de vh/dvh, evitando o bug em que a barra de endereço some
+   e empurra o menu inferior pra fora da área visível ===== */
+@media (max-width: 480px) {
+  body {
+    padding: 0 !important;
+    align-items: stretch !important;
+    overflow: hidden !important;
+  }
+
+  .phone {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .bottom {
+    padding-bottom: env(safe-area-inset-bottom) !important;
+  }
+}
 </style>
 </head>
 <body>
@@ -751,18 +769,11 @@ function updateCalendar() {
 
     const today = new Date(); today.setHours(0,0,0,0);
     for (let d = 1; d <= daysInMonth; d++) {
-        const el       = document.createElement('span');
-        el.className   = 'day';
+        const el      = document.createElement('span');
+        el.className  = 'day';
         el.textContent = d;
-        const dateStr  = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-        const isPast   = new Date(currentYear, currentMonth, d) < today;
-
-        if (isPast) {
-            el.classList.add('disabled');
-        } else {
-            el.onclick = () => selectDate(dateStr);
-        }
-
+        const dateStr = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        el.onclick    = () => selectDate(dateStr);
         if (new Date(currentYear, currentMonth, d).toDateString() === today.toDateString()) el.classList.add('highlight');
         if (selectedDate === dateStr) el.classList.add('selected');
         container.appendChild(el);
@@ -786,10 +797,6 @@ function changeYear(delta) {
 }
 
 function selectDate(date) {
-    const today = new Date(); today.setHours(0,0,0,0);
-    const [y, m, d] = date.split('-').map(Number);
-    if (new Date(y, m - 1, d) < today) return; // proteção extra contra data retroativa
-
     selectedDate = date;
     document.getElementById('data_coleta').value = date;
     document.querySelectorAll('.day').forEach(el => {

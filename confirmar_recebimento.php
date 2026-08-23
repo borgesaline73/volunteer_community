@@ -127,6 +127,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     font-weight: 600 !important;
     font-size: 13px !important;
 }
+
+/* ===== FIX iOS SAFARI: usa a altura real do viewport (position:fixed)
+   ao invés de vh/dvh, evitando o bug em que a barra de endereço some
+   e empurra o menu inferior pra fora da área visível ===== */
+@media (max-width: 480px) {
+  body {
+    padding: 0 !important;
+    align-items: stretch !important;
+    overflow: hidden !important;
+  }
+
+  .phone {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .bottom {
+    padding-bottom: env(safe-area-inset-bottom) !important;
+  }
+}
 </style>
 </head>
 <body>

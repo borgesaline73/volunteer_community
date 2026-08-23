@@ -426,3 +426,24 @@ body {
     padding-bottom: 80px;
   }
 }
+
+/* ===== FIX iOS SAFARI: usa a altura real do viewport (position:fixed)
+   ao invés de vh/dvh, evitando o bug em que a barra de endereço some
+   e empurra o menu inferior pra fora da área visível ===== */
+@media (max-width: 480px) {
+  body {
+    padding: 0;
+    align-items: stretch;
+    overflow: hidden;
+  }
+
+  .phone {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: auto;
+    max-height: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
