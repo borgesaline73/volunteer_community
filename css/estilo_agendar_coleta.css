@@ -379,6 +379,27 @@ body {
   background: #f5f5f5;
 }
 
+.day.disabled {
+  color: #ccc;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.day.disabled:hover {
+  background: transparent;
+}
+
+.info-banner {
+  margin: 12px 20px 4px;
+  padding: 10px 14px;
+  background: #eef6ff;
+  border: 1px solid #cfe4ff;
+  border-radius: 12px;
+  color: #2b5c9e;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 /* HORÁRIOS */
 .section {
   padding: 6px 20px 0;

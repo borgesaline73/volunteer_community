@@ -111,7 +111,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($ong_escolhida)) {
             $mensagem = '<div class="error-message">Selecione uma ONG para doação!</div>';
         } elseif (!$is_pix && (empty($data_selecionada) || empty($horario_selecionado) || empty($local_selecionado))) {
-            $mensagem = '<div class="error-message">Preencha todos os campos!</div>';
+            $mensagem = '<div class="error-message">⚠️ Preencha todos os campos obrigatórios antes de agendar.</div>';
+        } elseif (!$is_pix && $data_selecionada < date('Y-m-d')) {
+            $mensagem = '<div class="error-message">⚠️ Não é possível agendar para uma data que já passou. Escolha hoje ou uma data futura.</div>';
         } elseif (!$id_doador_table) {
             $mensagem = '<div class="error-message">❌ Erro: Doador não encontrado.</div>';
         } else {
@@ -535,6 +537,10 @@ $mes_atual = (int)date('m');
       <input type="hidden" name="ong_escolhida"  value="<?= $ong_escolhida ?>">
       <input type="hidden" name="chave_pix_ong"  value="<?= htmlspecialchars($ong_selecionada['chave_pix'] ?? '') ?>">
 
+      <div class="info-banner">
+        ℹ️ Preencha todos os campos abaixo para habilitar o agendamento.
+      </div>
+
       <!-- TIPO DE DOAÇÃO -->
       <div class="section">Tipo de Doação</div>
       <div class="tipo-doacao">
@@ -778,8 +784,15 @@ function updateCalendar() {
         el.className  = 'day';
         el.textContent = d;
         const dateStr = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-        el.onclick    = () => selectDate(dateStr);
-        if (new Date(currentYear, currentMonth, d).toDateString() === today.toDateString()) el.classList.add('highlight');
+        const dataDia = new Date(currentYear, currentMonth, d);
+
+        if (dataDia < today) {
+            el.classList.add('disabled');
+        } else {
+            el.onclick = () => selectDate(dateStr);
+        }
+
+        if (dataDia.toDateString() === today.toDateString()) el.classList.add('highlight');
         if (selectedDate === dateStr) el.classList.add('selected');
         container.appendChild(el);
     }
@@ -853,7 +866,24 @@ async function confirmarAgendamento() {
     const nomeOng = '<?= addslashes($ong_selecionada["nome"] ?? "") ?>';
 
     if (!data || !horario || !local) {
-        await swalAgendar.fire({ title: 'Campos incompletos', text: 'Preencha todos os campos!', icon: 'warning', confirmButtonText: 'Ok' });
+        await swalAgendar.fire({ title: 'Campos incompletos', text: 'Preencha todos os campos obrigatórios antes de agendar!', icon: 'warning', confirmButtonText: 'Ok' });
+        return;
+    }
+
+    if (tipo === 'ITEM' && !desc) {
+        await swalAgendar.fire({ title: 'Campos incompletos', text: 'Descreva os itens que você vai doar.', icon: 'warning', confirmButtonText: 'Ok' });
+        return;
+    }
+
+    if (tipo === 'DINHEIRO' && (!valor || parseFloat(valor) <= 0)) {
+        await swalAgendar.fire({ title: 'Campos incompletos', text: 'Informe um valor de doação válido.', icon: 'warning', confirmButtonText: 'Ok' });
+        return;
+    }
+
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    const dataEscolhida = new Date(data + 'T00:00:00');
+    if (dataEscolhida < hoje) {
+        await swalAgendar.fire({ title: 'Data inválida', text: 'Não é possível agendar para uma data que já passou.', icon: 'warning', confirmButtonText: 'Ok' });
         return;
     }
 
