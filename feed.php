@@ -143,6 +143,9 @@ if ($tipoUsuario === "instituicao") {
 
   <div class="header">
     <h1>Conexão Solidária</h1>
+    <span class="logout-btn" onclick="window.location='logout.php'">
+      <i class="fa-solid fa-right-from-bracket"></i> Sair
+    </span>
   </div>
 
   <div class="feed-container">

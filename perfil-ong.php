@@ -140,6 +140,7 @@ $rotaPerfil = "perfil-ong.php";
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Perfil da ONG - Volunteer Community</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="stylesheet" href="css/estilo_global.css">
 <link rel="stylesheet" href="css/estilo_perfil_ong.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
@@ -454,9 +455,11 @@ $rotaPerfil = "perfil-ong.php";
 <div class="phone" id="phoneWrapper">
 
   <div class="header">
-    <span onclick="history.back()" style="cursor:pointer;">⬅</span>
+    <button class="back-btn" onclick="history.back()">←</button>
     <div class="header-title">Perfil da ONG</div>
-    <span style="cursor:pointer;" onclick="window.location='logout.php'">🚪</span>
+    <span class="logout-btn" onclick="window.location='logout.php'">
+      <i class="fa-solid fa-right-from-bracket"></i> Sair
+    </span>
   </div>
 
   <div class="main-content">

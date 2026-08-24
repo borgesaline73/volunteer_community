@@ -7,6 +7,7 @@ body {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
+  min-height: 100dvh;
   padding: 20px;
   font-family: "Poppins", sans-serif;
 }
@@ -16,6 +17,7 @@ body {
   max-width: 430px;
   background: #fff;
   height: 90vh;
+  height: 90dvh;
   max-height: 800px;
   border-radius: 32px;
   box-shadow: 0 10px 40px rgba(0,0,0,0.06);
@@ -40,6 +42,42 @@ body {
 .header span:first-child {
   cursor: default;
   font-size: 20px;
+}
+
+.back-btn {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border-radius: 50%;
+  background: #fff1e6;
+  border: none;
+  color: #f4822f;
+  font-size: 20px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+.back-btn:hover {
+  background: #ffe0c2;
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #e74c3c;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.logout-btn i {
+  font-size: 15px;
 }
 
 .header span:last-child {
@@ -301,7 +339,7 @@ body {
 
 /* MENU FIXO NO RODAPÉ COM BOTÃO + */
 .bottom {
-  height: 74px;
+  min-height: 74px;
   border-top: 1px solid #eee;
   display: flex;
   align-items: center;
@@ -313,6 +351,7 @@ body {
   left: 0;
   right: 0;
   z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .menu-item {

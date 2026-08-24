@@ -179,6 +179,9 @@ body {
   z-index: 10;
   border-bottom: 1px solid #f0f0f0;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .header h1 {
@@ -186,6 +189,21 @@ body {
   font-weight: 800;
   color: var(--t);
   letter-spacing: -.5px;
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #e74c3c;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.logout-btn i {
+  font-size: 15px;
 }
 
 .tab-menu {
@@ -551,6 +569,9 @@ body {
 
   <div class="header">
     <h1>ONGs do Mês</h1>
+    <span class="logout-btn" onclick="window.location='logout.php'">
+      <i class="fa-solid fa-right-from-bracket"></i> Sair
+    </span>
   </div>
 
   <div class="tab-menu" id="tabMenu">

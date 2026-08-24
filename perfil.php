@@ -131,6 +131,7 @@ $rotaPerfil = "perfil.php";
 <title>Perfil - Volunteer Community</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="stylesheet" href="css/estilo_global.css">
 <link rel="stylesheet" href="css/estilo_perfil_doador.css">
 
@@ -273,9 +274,11 @@ $rotaPerfil = "perfil.php";
 
   
   <div class="header">
-    <span onclick="history.back()" style="cursor:pointer;">⬅</span>
+    <button class="back-btn" onclick="history.back()">←</button>
     <div class="header-title">Meu Perfil</div>
-    <span style="cursor:pointer;" onclick="window.location='logout.php'">🚪</span>
+    <span class="logout-btn" onclick="window.location='logout.php'">
+      <i class="fa-solid fa-right-from-bracket"></i> Sair
+    </span>
   </div>
 
   <!-- ÁREA PRINCIPAL COM SCROLL -->

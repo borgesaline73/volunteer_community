@@ -389,6 +389,27 @@ try {
         font-size: 16px;
     }
     
+    .back-btn {
+        width: 38px;
+        height: 38px;
+        min-width: 38px;
+        border-radius: 50%;
+        background: #fff1e6;
+        border: none;
+        color: #f4822f;
+        font-size: 20px;
+        font-weight: 800;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: background 0.2s;
+    }
+    .back-btn:hover {
+        background: #ffe0c2;
+    }
+    
     .main-content {
         flex: 1;
         overflow-y: auto;
@@ -429,7 +450,7 @@ try {
 <body>
 <div class="phone" id="phoneWrapper">
     <div class="header">
-        <span onclick="history.back()" style="cursor:pointer;">⬅</span>
+        <button class="back-btn" onclick="history.back()">←</button>
         <div class="header-title">Meu WhatsApp</div>
         <span style="visibility:hidden;">⚙️</span>
     </div>

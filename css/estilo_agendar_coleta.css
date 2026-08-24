@@ -40,6 +40,27 @@ body {
   flex-shrink: 0;
 }
 
+.back-btn {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border-radius: 50%;
+  background: #fff1e6;
+  border: none;
+  color: #f4822f;
+  font-size: 20px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+.back-btn:hover {
+  background: #ffe0c2;
+}
+
 .header-title {
   flex: 1;
   text-align: center;

@@ -365,7 +365,7 @@ $mes_atual = (int)date('m');
 <div class="phone" id="phoneWrapper">
 
   <div class="header">
-    <span onclick="history.back()" style="cursor:pointer;">⬅</span>
+    <button class="back-btn" onclick="history.back()">←</button>
     <div class="header-title"><?= $mostrar_formulario ? 'Agendar Coleta' : 'Escolher ONG' ?></div>
     <span style="visibility:hidden;">⚙️</span>
   </div>

@@ -91,6 +91,7 @@ try {
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title><?= htmlspecialchars($nome_ong) ?> - Volunteer Community</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="stylesheet" href="css/estilo_global.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 <?php include 'google_analytics.php'; ?>
@@ -195,12 +196,41 @@ body {
 }
 
 .back-btn {
-    background: none;
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    border-radius: 50%;
+    background: #fff1e6;
     border: none;
-    font-size: 24px;
+    font-size: 20px;
+    font-weight: 800;
     cursor: pointer;
     color: var(--orange);
-    width: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.2s;
+}
+
+.back-btn:hover {
+    background: #ffe0c2;
+}
+
+.logout-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #e74c3c;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.logout-btn i {
+    font-size: 15px;
 }
 
 .main-content {
@@ -692,7 +722,9 @@ body {
     <div class="header">
         <button class="back-btn" onclick="history.back()">←</button>
         <div class="header-title"><?= htmlspecialchars($nome_ong) ?></div>
-        <div style="width: 30px;"></div>
+        <span class="logout-btn" onclick="window.location='logout.php'">
+          <i class="fa-solid fa-right-from-bracket"></i> Sair
+        </span>
     </div>
 
     <div class="main-content">

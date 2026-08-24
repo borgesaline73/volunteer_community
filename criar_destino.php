@@ -104,6 +104,7 @@ try {
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title><?= $titulo_pagina ?> - Volunteer Community</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="stylesheet" href="css/estilo_global.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 <?php include 'google_analytics.php'; ?>
@@ -113,6 +114,10 @@ body { background: #f6f4f2; display: flex; justify-content: center; align-items:
 .phone { width: 100%; max-width: 430px; background: #fff; height: 90vh; height: 90dvh; max-height: 800px; border-radius: 32px; box-shadow: 0 10px 40px rgba(0,0,0,0.06); display: flex; flex-direction: column; overflow: hidden; }
 .header { padding: 18px 20px 10px; display: flex; align-items: center; justify-content: space-between; background: #fff; border-bottom: 1px solid #f0f0f0; }
 .header-title { flex: 1; text-align: center; font-weight: 600; font-size: 16px; }
+.back-btn { width: 38px; height: 38px; min-width: 38px; border-radius: 50%; background: #fff1e6; border: none; color: #f4822f; font-size: 20px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.2s; }
+.back-btn:hover { background: #ffe0c2; }
+.logout-btn { display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 700; color: #e74c3c; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+.logout-btn i { font-size: 15px; }
 .main-content { flex: 1; overflow-y: auto; padding: 20px; }
 .form-card { background: #fff; border-radius: 24px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); margin-bottom: 20px; }
 .form-card h2 { font-size: 20px; margin-bottom: 20px; color: #2b2b2b; }
@@ -168,9 +173,11 @@ input[type=file] { display: none; }
 <body>
 <div class="phone">
   <div class="header">
-    <span onclick="history.back()" style="cursor:pointer;">←</span>
+    <button class="back-btn" onclick="history.back()">←</button>
     <div class="header-title"><?= $titulo_pagina ?></div>
-    <span onclick="location.href='logout.php'" style="cursor:pointer;">🚪</span>
+    <span class="logout-btn" onclick="location.href='logout.php'">
+      <i class="fa-solid fa-right-from-bracket"></i> Sair
+    </span>
   </div>
   
   <div class="main-content">

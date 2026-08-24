@@ -29,6 +29,7 @@ $rejeitadas = count(array_filter($ongs, fn($o) => $o['verificacao_status'] === '
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Admin – Verificar ONGs</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
   <link rel="stylesheet" href="css/estilo_global.css">
   <link rel="stylesheet" href="css/estilo_admin.css">
@@ -44,6 +45,9 @@ $rejeitadas = count(array_filter($ongs, fn($o) => $o['verificacao_status'] === '
     <?php if ($pendentes > 0): ?>
       <span class="header-badge"><?= $pendentes ?> pendente<?= $pendentes > 1 ? 's' : '' ?></span>
     <?php endif; ?>
+    <span class="logout-btn" onclick="window.location='logout.php'">
+      <i class="fa-solid fa-right-from-bracket"></i> Sair
+    </span>
   </div>
 
   <!-- FILTROS -->
