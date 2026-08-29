@@ -1,5 +1,5 @@
 <?php
-/**
+/** Para fins de aocnhecimento segue abaixo o que esse arquivo faz:
  * Envia um arquivo de imagem para o Cloudinary e retorna a URL pública.
  * Usa upload "unsigned" (via upload preset), então não precisa da API secret aqui.
  *
