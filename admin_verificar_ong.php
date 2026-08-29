@@ -8,6 +8,11 @@ if (!isset($_SESSION["usuario_id"])) {
     exit;
 }
 
+if (($_SESSION["usuario_tipo"] ?? "") !== "admin") {
+    header("Location: feed.php");
+    exit;
+}
+
 try {
     $stmt = $pdo->query("SELECT id_usuario, nome, email, cpf_cnpj_enc, verificada, verificacao_status, data_cadastro
                          FROM usuarios
@@ -159,7 +164,7 @@ $rejeitadas = count(array_filter($ongs, fn($o) => $o['verificacao_status'] === '
     <a href="campanhas.php" class="menu-item">
       📢<span>Campanhas</span>
     </a>
-    <a href="admin_verificar_ongs.php" class="menu-item active">
+    <a href="admin_verificar_ong.php" class="menu-item active">
       🛡️<span>Admin</span>
     </a>
     <a href="notificacoes.php" class="menu-item">
