@@ -75,18 +75,13 @@ body {
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
+  transition: opacity 0.3s;
 }
 .logout-btn i {
   font-size: 15px;
 }
 
-.header span:last-child {
-  cursor: pointer;
-  font-size: 20px;
-  transition: opacity 0.3s;
-}
-
-.header span:last-child:hover {
+.logout-btn:hover {
   opacity: 0.7;
 }
 
