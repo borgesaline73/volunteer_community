@@ -229,6 +229,12 @@ if ($tipoUsuario === "instituicao") {
                         🏢 Ver ONG
                     </a>
                 </div>
+              <?php elseif ($tipoUsuario === "admin"): ?>
+                <div class="post-acoes">
+                    <a href="perfil-ong-publico.php?id=<?= $id_ong_perfil ?>" class="btn-ver-ong">
+                        🏢 Ver ONG
+                    </a>
+                </div>
               <?php endif; ?>
             </div>
           <?php endforeach; ?>
@@ -269,6 +275,13 @@ if ($tipoUsuario === "instituicao") {
       👤
       <span>Perfil</span>
     </a>
+
+    <?php if ($tipoUsuario === "admin"): ?>
+    <a href="admin_verificar_ong.php" class="menu-item">
+      🛡️
+      <span>Admin</span>
+    </a>
+    <?php endif; ?>
   </div>
 </div>
 
