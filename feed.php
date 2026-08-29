@@ -263,7 +263,11 @@ if ($tipoUsuario === "instituicao") {
       <span>Campanhas</span>
     </a>
 
-    <button class="plus-btn" onclick="window.location.href='<?= $acaoPlus ?>'">+</button>
+    <?php if ($tipoUsuario === "admin"): ?>
+      <button class="plus-btn" onclick="window.location.href='admin_verificar_ong.php'">🛡️</button>
+    <?php else: ?>
+      <button class="plus-btn" onclick="window.location.href='<?= $acaoPlus ?>'">+</button>
+    <?php endif; ?>
 
     <a href="notificacoes.php" class="menu-item">
       🔔
@@ -275,13 +279,6 @@ if ($tipoUsuario === "instituicao") {
       👤
       <span>Perfil</span>
     </a>
-
-    <?php if ($tipoUsuario === "admin"): ?>
-    <a href="admin_verificar_ong.php" class="menu-item">
-      🛡️
-      <span>Admin</span>
-    </a>
-    <?php endif; ?>
   </div>
 </div>
 
