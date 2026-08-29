@@ -12,6 +12,7 @@ if (($_SESSION["usuario_tipo"] ?? "") !== "doador") {
 }
 
 require "banco.php";
+require "funcoes_cripto.php";
 
 $nome      = $_SESSION["usuario_nome"] ?? "Usuário";
 $id_doador = $_SESSION["usuario_id"];
@@ -33,10 +34,10 @@ try {
     $categoria_exists = $stmt_check->fetch(PDO::FETCH_ASSOC);
 
     $sql_ongs = $categoria_exists
-        ? "SELECT u.id_usuario, u.nome, u.email, u.cpf_cnpj, o.endereco, o.descricao, o.categoria, o.chave_pix, o.whatsapp 
+        ? "SELECT u.id_usuario, u.nome, u.email, u.cpf_cnpj_enc, o.endereco, o.descricao, o.categoria, o.chave_pix, o.whatsapp 
            FROM usuarios u LEFT JOIN ongs o ON u.id_usuario = o.id_ong 
            WHERE u.tipo_usuario = 'instituicao' ORDER BY u.nome ASC"
-        : "SELECT u.id_usuario, u.nome, u.email, u.cpf_cnpj, o.endereco, o.descricao, o.chave_pix, o.whatsapp 
+        : "SELECT u.id_usuario, u.nome, u.email, u.cpf_cnpj_enc, o.endereco, o.descricao, o.chave_pix, o.whatsapp 
            FROM usuarios u LEFT JOIN ongs o ON u.id_usuario = o.id_ong 
            WHERE u.tipo_usuario = 'instituicao' ORDER BY u.nome ASC";
 
@@ -47,7 +48,7 @@ try {
 } catch (PDOException $e) {
     error_log("ERRO ao buscar ONGs: " . $e->getMessage());
     try {
-        $stmt_simple = $pdo->prepare("SELECT u.id_usuario, u.nome, u.email, u.cpf_cnpj 
+        $stmt_simple = $pdo->prepare("SELECT u.id_usuario, u.nome, u.email, u.cpf_cnpj_enc 
                                       FROM usuarios u WHERE u.tipo_usuario = 'instituicao' ORDER BY u.nome ASC");
         $stmt_simple->execute();
         $ongs = $stmt_simple->fetchAll(PDO::FETCH_ASSOC);
@@ -56,12 +57,24 @@ try {
     }
 }
 
+// Doador só vê o CNPJ mascarado (dado sensível da ONG)
+foreach ($ongs as &$ong_item) {
+    $ong_item['cpf_cnpj'] = mascararCpfCnpj(descriptografarCpfCnpj($ong_item['cpf_cnpj_enc'] ?? null));
+}
+unset($ong_item);
+
 function buscarOng($pdo, $id) {
-    $stmt = $pdo->prepare("SELECT u.nome, u.email, u.cpf_cnpj, o.endereco, o.id_ong, o.descricao, o.chave_pix, o.whatsapp
+    $stmt = $pdo->prepare("SELECT u.nome, u.email, u.cpf_cnpj_enc, o.endereco, o.id_ong, o.descricao, o.chave_pix, o.whatsapp
                            FROM usuarios u LEFT JOIN ongs o ON u.id_usuario = o.id_ong 
                            WHERE u.id_usuario = ? AND u.tipo_usuario = 'instituicao'");
     $stmt->execute([$id]);
-    return $stmt->fetch(PDO::FETCH_ASSOC);
+    $ong = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($ong) {
+        $ong['cpf_cnpj'] = mascararCpfCnpj(descriptografarCpfCnpj($ong['cpf_cnpj_enc'] ?? null));
+    }
+
+    return $ong;
 }
 
 // Buscar/criar doador

@@ -1,6 +1,7 @@
 <?php
 session_start();
 require "banco.php";
+require "funcoes_cripto.php";
 
 // NÃO REDIRECIONA PARA LOGIN - APENAS MOSTRA ERRO SE NÃO ESTIVER LOGADO
 $id_visitante = $_SESSION["usuario_id"] ?? null;
@@ -19,7 +20,7 @@ $rotaPlus = $tipo_visitante === "instituicao" ? "criar_post.php" : "agendar_cole
 
 try {
     // BUSCA A ONG PELO ID (incluindo WhatsApp)
-    $stmt = $pdo->prepare("SELECT u.id_usuario, u.nome, u.email, u.cpf_cnpj, u.verificada, u.verificacao_status,
+    $stmt = $pdo->prepare("SELECT u.id_usuario, u.nome, u.email, u.cpf_cnpj_enc, u.verificada, u.verificacao_status,
                                   o.whatsapp, o.endereco, o.descricao
                            FROM usuarios u
                            LEFT JOIN ongs o ON u.id_usuario = o.id_ong
@@ -34,7 +35,8 @@ try {
 
     $nome_ong = $ong['nome'];
     $email_ong = $ong['email'] ?? '';
-    $cnpj_ong = $ong['cpf_cnpj'] ?? '';
+    // Perfil público: CNPJ mascarado, mesmo para visitantes logados
+    $cnpj_ong = mascararCpfCnpj(descriptografarCpfCnpj($ong['cpf_cnpj_enc'] ?? null));
     $verificada = $ong['verificada'] ?? false;
     $status_ver = $ong['verificacao_status'] ?? 'pendente';
     $whatsapp_ong = $ong['whatsapp'] ?? '';

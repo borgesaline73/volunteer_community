@@ -1,6 +1,7 @@
 <?php
 session_start();
 require "banco.php";
+require "funcoes_cripto.php";
 
 if (!isset($_SESSION["usuario_id"])) {
     header("Location: login.php");
@@ -8,11 +9,17 @@ if (!isset($_SESSION["usuario_id"])) {
 }
 
 try {
-    $stmt = $pdo->query("SELECT id_usuario, nome, email, cpf_cnpj, verificada, verificacao_status, data_cadastro
+    $stmt = $pdo->query("SELECT id_usuario, nome, email, cpf_cnpj_enc, verificada, verificacao_status, data_cadastro
                          FROM usuarios
                          WHERE tipo_usuario = 'instituicao'
                          ORDER BY verificacao_status ASC, nome ASC");
     $ongs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Admin precisa ver o CNPJ completo para validar a ONG manualmente
+    foreach ($ongs as &$ong) {
+        $ong['cpf_cnpj'] = descriptografarCpfCnpj($ong['cpf_cnpj_enc']);
+    }
+    unset($ong);
 } catch (PDOException $e) {
     $ongs = [];
 }

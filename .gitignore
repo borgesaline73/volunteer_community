@@ -1,0 +1,14 @@
+# Uploads de usuários (imagens reais) — não devem ficar no repositório
+/uploads/
+
+# Variáveis de ambiente e segredos locais
+.env
+.env.local
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
+
+# Configuração de IDE
+.vscode/
+.idea/

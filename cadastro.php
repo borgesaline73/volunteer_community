@@ -1,6 +1,7 @@
 <?php
 session_start();
 require "banco.php";
+require "funcoes_cripto.php";
 
 $mensagem_erro = '';
 $tipo_erro = '';
@@ -98,19 +99,22 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $tipo_erro = "error";
     } else {
         $senhaHash = password_hash($senha, PASSWORD_DEFAULT);
+        $cpfHash   = hashCpfCnpj($cpf_cnpj);
+        $cpfEnc    = criptografarCpfCnpj($cpf_cnpj);
 
         try {
             $stmt = $pdo->prepare("
-                INSERT INTO usuarios (nome, email, senha, cpf_cnpj, tipo_usuario)
-                VALUES (:nome, :email, :senha, :cpf, :tipo)
+                INSERT INTO usuarios (nome, email, senha, cpf_cnpj_enc, cpf_cnpj_hash, tipo_usuario)
+                VALUES (:nome, :email, :senha, :cpf_enc, :cpf_hash, :tipo)
                 RETURNING id_usuario
             ");
             $stmt->execute([
-                ":nome"  => $nome,
-                ":email" => $email,
-                ":senha" => $senhaHash,
-                ":cpf"   => $cpf_cnpj,
-                ":tipo"  => $role
+                ":nome"     => $nome,
+                ":email"    => $email,
+                ":senha"    => $senhaHash,
+                ":cpf_enc"  => $cpfEnc,
+                ":cpf_hash" => $cpfHash,
+                ":tipo"     => $role
             ]);
             $userId = $stmt->fetchColumn();
 

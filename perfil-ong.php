@@ -1,6 +1,7 @@
 <?php
 session_start();
 require "banco.php";
+require "funcoes_cripto.php";
 
 if (!isset($_SESSION["usuario_id"])) {
     header("Location: login.php");
@@ -38,7 +39,7 @@ try {
 
 // ===== BUSCA DADOS DO USUÁRIO =====
 try {
-    $stmt_ong = $pdo->prepare("SELECT nome, email, tipo_usuario, cpf_cnpj, verificada, verificacao_status
+    $stmt_ong = $pdo->prepare("SELECT nome, email, tipo_usuario, cpf_cnpj_enc, verificada, verificacao_status
                                FROM usuarios WHERE id_usuario = ?");
     $stmt_ong->execute([$id_ong]);
     $ong = $stmt_ong->fetch(PDO::FETCH_ASSOC);
@@ -48,7 +49,8 @@ try {
     $nome               = $ong['nome']               ?? "Instituição";
     $email              = $ong['email']              ?? "";
     $tipo_usuario       = $ong['tipo_usuario']       ?? "instituicao";
-    $cnpj               = $ong['cpf_cnpj']           ?? "";
+    // A própria ONG pode ver seu CNPJ completo (é o dono do dado)
+    $cnpj               = descriptografarCpfCnpj($ong['cpf_cnpj_enc'] ?? null) ?? "";
     $verificada         = $ong['verificada']         ?? false;
     $verificacao_status = $ong['verificacao_status'] ?? 'pendente';
 
