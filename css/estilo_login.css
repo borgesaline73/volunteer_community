@@ -29,6 +29,33 @@ body {
   align-items: center;
 }
 
+/* ===== FIX iOS SAFARI / Chrome mobile: mesma solução já usada no .phone
+   em estilo_global.css. position:fixed usa a altura real e visível da
+   viewport, evitando que a barra de endereço/navegação esconda o final
+   do conteúdo (ex.: "Crie agora") ===== */
+@media (max-width: 480px) {
+  body {
+    padding: 0 !important;
+    align-items: stretch !important;
+    overflow: hidden !important;
+  }
+
+  .login-screen {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    border-radius: 0 !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .content {
+    padding-bottom: calc(24px + env(safe-area-inset-bottom)) !important;
+  }
+}
+
 /* ── Header laranja com curva na base ── */
 .header {
   width: 100%;

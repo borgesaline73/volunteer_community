@@ -13,13 +13,17 @@ CREATE TABLE usuarios (
     nome                VARCHAR(100) NOT NULL,
     email               VARCHAR(150) UNIQUE NOT NULL,
     senha               VARCHAR(200) NOT NULL,
-    cpf_cnpj            VARCHAR(20) UNIQUE NOT NULL,
+    cpf_cnpj_enc        TEXT,
+    cpf_cnpj_hash       VARCHAR(64),
     tipo_usuario        VARCHAR(50) NOT NULL, -- 'doador' ou 'instituicao'
     data_cadastro       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     ativo               BOOLEAN DEFAULT TRUE,
     verificada          BOOLEAN NOT NULL DEFAULT FALSE,
     verificacao_status  VARCHAR(20) DEFAULT 'pendente'
 );
+
+COMMENT ON COLUMN usuarios.cpf_cnpj_enc IS 'CPF/CNPJ criptografado (substitui a antiga coluna cpf_cnpj em texto plano)';
+COMMENT ON COLUMN usuarios.cpf_cnpj_hash IS 'Hash (SHA-256/64 chars) do CPF/CNPJ, usado para busca e garantia de unicidade sem expor o valor em texto plano';
 
 -- TABELA: ongs 
 CREATE TABLE ongs (
@@ -149,6 +153,7 @@ CREATE TABLE recuperacao_senha (
 -- Usuários
 CREATE INDEX idx_usuarios_email ON usuarios(email);
 CREATE INDEX idx_usuarios_tipo ON usuarios(tipo_usuario);
+CREATE UNIQUE INDEX idx_usuarios_cpf_cnpj_hash ON usuarios(cpf_cnpj_hash);
 
 -- Posts
 CREATE INDEX idx_posts_usuario ON posts(id_usuario);
