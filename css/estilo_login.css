@@ -15,12 +15,14 @@ body {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .login-screen {
   width: 100%;
   max-width: 390px;
   min-height: 100vh;
+  min-height: 100dvh;
   background: #fff;
   position: relative;
   overflow: hidden;
