@@ -170,7 +170,6 @@ if ($tipoUsuario === "instituicao") {
         <?php else: ?>
           <?php foreach ($posts as $post): 
             $descricao = $post['descricao'];
-            $temTextoLongo = strlen($descricao) > 200;
             $id_ong_perfil = (int)$post['id_ong'];
             if ($id_ong_perfil <= 0) continue;
           ?>
@@ -201,11 +200,9 @@ if ($tipoUsuario === "instituicao") {
                 <?= nl2br(htmlspecialchars($descricao)) ?>
               </div>
               
-              <?php if ($temTextoLongo): ?>
-                <button class="read-more" onclick="toggleContent(<?= $post['id_post'] ?>, this)">
-                  Ler mais
-                </button>
-              <?php endif; ?>
+              <button class="read-more" id="btn-<?= $post['id_post'] ?>" style="display:none;" onclick="toggleContent(<?= $post['id_post'] ?>, this)">
+                Ler mais
+              </button>
 
               <?php if (!empty($post['imagem'])): ?>
                 <img src="<?= $post['imagem'] ?>"
@@ -334,6 +331,18 @@ function toggleContent(postId, button) {
     }
 }
 
+function ajustarBotoesLerMais() {
+    document.querySelectorAll('.post-content').forEach(function(content) {
+        const postId = content.id.replace('content-', '');
+        const btn = document.getElementById('btn-' + postId);
+        if (!btn) return;
+        // Mede a altura real do texto (scrollHeight) contra a altura colapsada
+        // (clientHeight, limitada pelo max-height no CSS) para decidir se o
+        // texto realmente foi cortado, em vez de confiar em contagem de caracteres.
+        btn.style.display = content.scrollHeight > content.clientHeight + 1 ? 'inline-block' : 'none';
+    });
+}
+
 async function atualizarBadgeNotificacoes() {
     try {
         const response = await fetch('contar_notificacoes.php');
@@ -395,6 +404,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
 
     atualizarBadgeNotificacoes();
+    ajustarBotoesLerMais();
 });
 
 // Atualizar badge a cada 30 segundos
